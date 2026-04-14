@@ -1,0 +1,461 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  admin
+  teacher
+  subscriber
+  student
+}
+
+enum ProductType {
+  lesson
+  course
+  bundle
+  livestream
+  digital_book
+  physical_book
+  souvenir
+  apparel
+  subscription_plan
+}
+
+enum VideoSource {
+  vk
+  rutube
+  kinescope
+  youtube
+  yos
+}
+
+enum ModerationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  delivered
+  cancelled
+  refunded
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  cancelled
+  refunded
+}
+
+enum PaymentProvider {
+  yookassa
+  cryptocloud
+  mir_pay
+}
+
+enum DeliveryProvider {
+  cdek
+  boxberry
+}
+
+enum NotificationType {
+  purchase
+  subscription_expiry
+  new_lesson
+  payout
+  system
+}
+
+// ─── Tables ───────────────────────────────────────────────────────────────────
+
+model Profile {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password_hash  String?
+  name           String
+  avatar_url     String?
+  role           Role     @default(student)
+  bio_ru         String?
+  bio_en         String?  // опционально (EN убран из основного UI)
+  preferred_lang String   @default("ru")
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  products          Product[]
+  user_subscriptions UserSubscription[]
+  purchases         Purchase[]
+  orders            Order[]
+  reviews           Review[]
+  user_progress     UserProgress[]
+  consent_logs      ConsentLog[]
+  ai_chat_sessions  AiChatSession[]
+  notifications     Notification[]
+  teacher_payouts   TeacherPayout[]
+
+  @@map("profiles")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name_ru     String
+  name_en     String?
+  description_ru String?
+  sort_order  Int       @default(0)
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id                String           @id @default(cuid())
+  slug              String           @unique
+  type              ProductType
+  title_ru          String
+  title_en          String?
+  description_ru    String?
+  description_en    String?
+  seo_title_ru      String?
+  seo_description_ru String?
+  price             Int              // в копейках
+  sale_price        Int?
+  thumbnail_url     String?
+  preview_video_url String?
+  video_source      VideoSource?
+  video_id          String?
+  moderation_status ModerationStatus @default(pending)
+  is_active         Boolean          @default(false)
+  creator_id        String
+  category_id       String?
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+
+  creator           Profile          @relation(fields: [creator_id], references: [id])
+  category          Category?        @relation(fields: [category_id], references: [id])
+  variants          ProductVariant[]
+  lessons           Lesson[]
+  courses           CourseProduct[]
+  bundles           BundleProduct[]
+  purchases         Purchase[]
+  order_items       OrderItem[]
+  reviews           Review[]
+  user_progress     UserProgress[]
+  subscriptions     Subscription[]
+
+  @@index([creator_id])
+  @@index([category_id])
+  @@index([type, is_active])
+  @@map("products")
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  product_id String
+  name_ru    String
+  sku        String?  @unique
+  price      Int
+  stock      Int      @default(0)
+  attributes Json     @default("{}")  // { size: "L", color: "black" }
+  created_at DateTime @default(now())
+
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([product_id])
+  @@map("product_variants")
+}
+
+model Lesson {
+  id           String      @id @default(cuid())
+  product_id   String
+  title_ru     String
+  title_en     String?
+  description_ru String?
+  video_source VideoSource?
+  video_id     String?
+  yos_key      String?     // ключ в Яндекс Object Storage
+  duration_sec Int?
+  sort_order   Int         @default(0)
+  is_free      Boolean     @default(false)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  product      Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user_progress UserProgress[]
+
+  @@index([product_id])
+  @@map("lessons")
+}
+
+model CourseProduct {
+  course_id  String
+  product_id String
+  sort_order Int     @default(0)
+
+  course     Product @relation("CourseToProduct", fields: [course_id], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@id([course_id, product_id])
+  @@map("courses")
+}
+
+// Self-referencing through pivot for bundles
+model BundleProduct {
+  bundle_id  String
+  product_id String
+
+  bundle     Product @relation("BundleToProduct", fields: [bundle_id], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@id([bundle_id, product_id])
+  @@map("bundles")
+}
+
+model Livestream {
+  id              String    @id @default(cuid())
+  product_id      String    @unique
+  stream_url      String?   // VK Live или RuTube Live URL
+  scheduled_at    DateTime
+  ended_at        DateTime?
+  recording_url   String?
+  recording_source VideoSource?
+  created_at      DateTime  @default(now())
+
+  @@map("livestreams")
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  product_id  String
+  name_ru     String
+  duration_days Int
+  price       Int      // в копейках
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+
+  product     Product  @relation(fields: [product_id], references: [id])
+  user_subscriptions UserSubscription[]
+
+  @@index([product_id])
+  @@map("subscriptions")
+}
+
+model UserSubscription {
+  id              String    @id @default(cuid())
+  user_id         String
+  subscription_id String
+  starts_at       DateTime  @default(now())
+  expires_at      DateTime
+  is_active       Boolean   @default(true)
+  created_at      DateTime  @default(now())
+
+  user            Profile      @relation(fields: [user_id], references: [id])
+  subscription    Subscription @relation(fields: [subscription_id], references: [id])
+
+  @@index([user_id, expires_at])
+  @@map("user_subscriptions")
+}
+
+model Purchase {
+  id         String   @id @default(cuid())
+  user_id    String
+  product_id String
+  amount     Int      // в копейках
+  created_at DateTime @default(now())
+
+  user       Profile  @relation(fields: [user_id], references: [id])
+  product    Product  @relation(fields: [product_id], references: [id])
+
+  @@unique([user_id, product_id])
+  @@index([user_id])
+  @@map("purchases")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  user_id         String
+  status          OrderStatus @default(pending)
+  total_amount    Int         // в копейках
+  delivery_amount Int         @default(0)
+  delivery_address Json?
+  delivery_provider DeliveryProvider?
+  delivery_tracking String?
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  user            Profile     @relation(fields: [user_id], references: [id])
+  items           OrderItem[]
+  payments        Payment[]
+
+  @@index([user_id])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  order_id    String
+  product_id  String
+  variant_id  String?
+  quantity    Int     @default(1)
+  price       Int     // в копейках, цена на момент покупки
+
+  order       Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [product_id], references: [id])
+
+  @@index([order_id])
+  @@map("order_items")
+}
+
+model Payment {
+  id               String          @id @default(cuid())
+  order_id         String
+  provider         PaymentProvider
+  provider_payment_id String?      @unique
+  status           PaymentStatus   @default(pending)
+  amount           Int             // в копейках
+  currency         String          @default("RUB")
+  metadata         Json?
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+
+  order            Order           @relation(fields: [order_id], references: [id])
+
+  @@index([order_id])
+  @@index([provider_payment_id])
+  @@map("payments")
+}
+
+model TeacherPayout {
+  id           String   @id @default(cuid())
+  teacher_id   String
+  amount       Int      // в копейках
+  period_start DateTime
+  period_end   DateTime
+  status       String   @default("pending")
+  paid_at      DateTime?
+  created_at   DateTime @default(now())
+
+  teacher      Profile  @relation(fields: [teacher_id], references: [id])
+
+  @@index([teacher_id])
+  @@map("teacher_payouts")
+}
+
+model PaymentMethodsConfig {
+  id         String          @id @default(cuid())
+  provider   PaymentProvider @unique
+  is_active  Boolean         @default(true)
+  config     Json            @default("{}")
+  updated_at DateTime        @updatedAt
+
+  @@map("payment_methods_config")
+}
+
+model DeliveryQuote {
+  id              String          @id @default(cuid())
+  order_id        String?
+  provider        DeliveryProvider
+  from_city       String
+  to_city         String
+  weight_g        Int
+  amount          Int             // в копейках
+  estimated_days  Int?
+  expires_at      DateTime
+  created_at      DateTime        @default(now())
+
+  @@index([order_id])
+  @@map("delivery_quotes")
+}
+
+model UserProgress {
+  id            String   @id @default(cuid())
+  user_id       String
+  product_id    String
+  lesson_id     String?
+  progress_pct  Int      @default(0)  // 0-100
+  completed_at  DateTime?
+  updated_at    DateTime @updatedAt
+
+  user          Profile  @relation(fields: [user_id], references: [id])
+  product       Product  @relation(fields: [product_id], references: [id])
+  lesson        Lesson?  @relation(fields: [lesson_id], references: [id])
+
+  @@unique([user_id, lesson_id])
+  @@index([user_id, product_id])
+  @@map("user_progress")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  user_id    String
+  product_id String
+  rating     Int      // 1-5
+  text_ru    String?
+  is_visible Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  user       Profile  @relation(fields: [user_id], references: [id])
+  product    Product  @relation(fields: [product_id], references: [id])
+
+  @@unique([user_id, product_id])
+  @@index([product_id])
+  @@map("reviews")
+}
+
+model ConsentLog {
+  id         String   @id @default(cuid())
+  user_id    String
+  consent_type String // "registration" | "checkout" | "become_teacher"
+  ip_address String?
+  user_agent String?
+  created_at DateTime @default(now())
+
+  user       Profile  @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("consent_log")
+}
+
+model AiChatSession {
+  id         String   @id @default(cuid())
+  user_id    String
+  messages   Json     @default("[]")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       Profile  @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("ai_chat_sessions")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  user_id    String
+  type       NotificationType
+  title_ru   String
+  body_ru    String?
+  is_read    Boolean          @default(false)
+  data       Json?
+  created_at DateTime         @default(now())
+
+  user       Profile          @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, is_read])
+  @@map("notifications")
+}
