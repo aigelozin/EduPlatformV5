@@ -282,6 +282,58 @@ model LivestreamMessage {
 
 ---
 
+## 8. Управление пользователями
+
+### Новая страница `/admin/users` — список всех пользователей
+
+Фильтры: по роли (все / student / teacher / subscriber / admin), по статусу (активен / заблокирован), поиск по имени и email.
+
+Столбцы таблицы: имя, email, роль, статус, дата регистрации, IP-адрес регистрации, город регистрации (определяется по IP через GeoIP), дата последнего входа.
+
+### Новая страница `/admin/users/[id]` — карточка пользователя
+
+**Блок «Профиль»:** имя, email, аватар, роль, статус, город, дата регистрации.
+
+**Блок «Регистрация»:**
+- IP-адрес при регистрации (из `consent_log` с типом `registration`)
+- Город и страна, определённые по IP (через библиотеку `geoip-lite`, работает офлайн, без внешних API)
+- User-Agent браузера при регистрации
+- Дата и время регистрации
+
+**Блок «Доступ»:**
+- Текущая роль с возможностью изменить (student ↔ subscriber ↔ teacher ↔ admin)
+- Статус аккаунта: активен / заблокирован
+- Список купленных продуктов (ссылки)
+- Активные подписки с датой истечения
+
+**Действия:**
+- Сменить роль → `PATCH /api/admin/users/[id]` с `{ role }`
+- Заблокировать / разблокировать → `{ is_active }`
+- **Принудительная смена пароля** → устанавливает флаг `force_password_change = true`; при следующем входе пользователь автоматически перенаправляется на `/change-password` и не может продолжить без смены пароля
+
+### Механика принудительной смены пароля
+
+1. Админ нажимает «Сбросить пароль» в карточке пользователя
+2. `PATCH /api/admin/users/[id]` устанавливает `force_password_change = true` в `profiles`
+3. При авторизации JWT-callback проверяет флаг и добавляет `force_password_change: true` в токен
+4. Middleware перехватывает все запросы пользователя с этим флагом и редиректит на `/change-password`
+5. На странице `/change-password` пользователь вводит новый пароль → `force_password_change` сбрасывается в `false`
+6. Пользователь продолжает работу
+
+### Изменения в схеме
+
+```prisma
+// добавляется к model Profile:
+registration_ip       String?   // IP при регистрации
+force_password_change Boolean   @default(false)
+```
+
+IP при регистрации уже частично пишется в `consent_log.ip_address` (тип `registration`). Дополнительно дублируем в `profiles.registration_ip` для быстрого доступа без JOIN.
+
+GeoIP: библиотека `geoip-lite` (база данных MaxMind GeoLite2 в node_modules, ~50 МБ, офлайн) — определяет страну и город по IP без внешних запросов.
+
+---
+
 ## Навигация в сайдбаре `/admin`
 
 Добавляются пункты:
@@ -291,6 +343,7 @@ model LivestreamMessage {
 Преподаватели
 Продукты
 Заказы
+Пользователи   ← новый
 ─────────────
 Аналитика      ← новый
 Отзывы         ← новый
@@ -309,10 +362,15 @@ model LivestreamMessage {
 | `/admin/analytics` | Дашборд аналитики |
 | `/admin/reviews` | Модерация отзывов |
 | `/admin/chats` | Обзор чатов продуктов |
+| `/admin/users` | Список всех пользователей |
+| `/admin/users/[id]` | Карточка пользователя: доступ, регистрация, пароль |
 | `/admin/teachers/[id]` | Карточка преподавателя |
 | `/teacher/reviews` | Отзывы преподавателя |
+| `/change-password` | Страница принудительной смены пароля |
 | `/api/admin/settings` | GET + PUT настроек сайта |
+| `/api/admin/users/[id]` | PATCH: роль, статус, force_password_change |
 | `/api/products/[id]/messages` | GET (polling) + POST (чат продукта) |
+| `/api/products/[id]/view` | POST: инкремент views_count |
 | `/api/livestreams/[id]/chat` | POST сообщения |
 | `/api/livestreams/[id]/chat/stream` | GET SSE-поток |
 | `/llms.txt` | Статический route handler |
@@ -327,5 +385,5 @@ model LivestreamMessage {
 | `ProductMessage` | Новая таблица |
 | `LivestreamMessage` | Новая таблица |
 | `Product` | +`views_count`, +`duration_minutes`, +`ai_description_ru` |
-| `Profile` | +`city` |
+| `Profile` | +`city`, +`registration_ip`, +`force_password_change` |
 | `Review` | +`reply_ru`, +`replied_at`, +`is_visible` |
