@@ -35,7 +35,17 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
     ...(teacher_id ? { creator_id: teacher_id } : {}),
   }
 
-  let products: Awaited<ReturnType<typeof db.product.findMany>> = []
+  type ProductWithRelations = {
+    id: string
+    title_ru: string
+    type: string
+    price: number
+    moderation_status: string
+    creator: { name: string; email: string }
+    category: { name_ru: string } | null
+  }
+
+  let products: ProductWithRelations[] = []
   try {
     products = await db.product.findMany({
       where,
@@ -45,7 +55,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       },
       orderBy: { created_at: 'desc' },
       take: 50,
-    })
+    }) as ProductWithRelations[]
   } catch {
     // DB unavailable
   }

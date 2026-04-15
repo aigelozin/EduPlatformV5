@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Truck } from 'lucide-react'
 import { db } from '@/lib/db/client'
+import { AddToCartButton } from '@/components/shop/AddToCartButton'
 
 interface PageProps {
   params: { slug: string }
@@ -35,7 +36,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ShopProductPage({ params }: PageProps) {
-  let product: Awaited<ReturnType<typeof db.product.findUnique>> = null
+  type ShopProduct = {
+    id: string
+    slug: string
+    type: string
+    title_ru: string
+    description_ru: string | null
+    price: number
+    sale_price: number | null
+    thumbnail_url: string | null
+    creator: { name: string; avatar_url: string | null }
+    category: { name_ru: string } | null
+    variants: { id: string; name_ru: string; price: number; stock: number | null }[]
+    _count: { reviews: number }
+  }
+
+  let product: ShopProduct | null = null
   try {
     product = await db.product.findUnique({
       where: { slug: params.slug, is_active: true, moderation_status: 'approved' },
@@ -45,7 +61,7 @@ export default async function ShopProductPage({ params }: PageProps) {
         variants: { orderBy: { price: 'asc' } },
         _count: { select: { reviews: true } },
       },
-    })
+    }) as ShopProduct | null
   } catch {
     // DB unavailable
   }
@@ -138,16 +154,13 @@ export default async function ShopProductPage({ params }: PageProps) {
           )}
 
           {/* Кнопка В корзину */}
-          <button
-            className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
-            data-product-id={product.id}
-            data-product-type={product.type}
-            data-product-title={product.title_ru}
-            data-product-price={displayPrice}
-            data-product-thumbnail={product.thumbnail_url ?? ''}
-          >
-            В корзину
-          </button>
+          <AddToCartButton
+            productId={product.id}
+            type={product.type}
+            titleRu={product.title_ru}
+            price={displayPrice}
+            thumbnailUrl={product.thumbnail_url}
+          />
 
           {/* Блок доставки */}
           <div className="flex items-start gap-3 p-4 rounded-xl border bg-muted/20">

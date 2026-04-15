@@ -33,7 +33,17 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
   const { status } = searchParams
   const validStatuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded']
 
-  let orders: Awaited<ReturnType<typeof db.order.findMany>> = []
+  type OrderWithUser = {
+    id: string
+    status: string
+    total_amount: number
+    delivery_provider: string | null
+    created_at: Date
+    user: { name: string; email: string }
+    _count: { items: number }
+  }
+
+  let orders: OrderWithUser[] = []
   try {
     orders = await db.order.findMany({
       where: status && validStatuses.includes(status)
@@ -45,7 +55,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       },
       orderBy: { created_at: 'desc' },
       take: 50,
-    })
+    }) as OrderWithUser[]
   } catch {
     // DB unavailable
   }

@@ -43,7 +43,21 @@ const FAQ = [
 ]
 
 export default async function SubscriptionsPage() {
-  let plans: Awaited<ReturnType<typeof db.subscription.findMany>> = []
+  type SubscriptionPlan = {
+    id: string
+    name_ru: string
+    price: number
+    duration_days: number
+    product: {
+      id: string
+      slug: string
+      title_ru: string
+      thumbnail_url: string | null
+      category: { name_ru: string; slug: string } | null
+    } | null
+  }
+
+  let plans: SubscriptionPlan[] = []
   try {
     plans = await db.subscription.findMany({
       where: { is_active: true },
@@ -59,7 +73,7 @@ export default async function SubscriptionsPage() {
         },
       },
       orderBy: { price: 'asc' },
-    })
+    }) as unknown as SubscriptionPlan[]
   } catch {
     // DB unavailable — show empty state
   }
@@ -109,7 +123,7 @@ export default async function SubscriptionsPage() {
 
                     <div>
                       <h3 className="text-lg font-bold">{plan.name_ru}</h3>
-                      {plan.product.category && (
+                      {plan.product?.category && (
                         <p className="text-sm text-muted-foreground mt-1">{plan.product.category.name_ru}</p>
                       )}
                     </div>

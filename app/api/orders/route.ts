@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/session'
 import { db } from '@/lib/db/client'
 import type { ApiResponse } from '@/types'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 // ─── Типы физических товаров, требующих доставки ──────────────────────────────
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<u
     const user_agent = req.headers.get('user-agent') ?? null
 
     // Транзакция: создаём Order + OrderItems + ConsentLog
+    type OrderCreated = { id: string; total_amount: number; _count: { items: number } }
     const order = await db.$transaction(async (tx) => {
       const created = await tx.order.create({
         data: {
@@ -116,7 +118,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<u
           total_amount,
           delivery_amount: 0,
           delivery_provider: delivery_provider ?? null,
-          delivery_address: delivery_address ?? null,
+          delivery_address: delivery_address !== undefined ? (delivery_address as Prisma.InputJsonValue) : Prisma.DbNull,
           items: {
             create: orderItems,
           },
@@ -137,7 +139,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<u
         },
       })
 
-      return created
+      return created as OrderCreated
     })
 
     return NextResponse.json(

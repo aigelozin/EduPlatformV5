@@ -28,7 +28,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ProductPage({ params }: PageProps) {
-  let product: Awaited<ReturnType<typeof db.product.findUnique>> = null
+  type ProductFull = {
+    id: string
+    title_ru: string
+    description_ru: string | null
+    price: number
+    sale_price: number | null
+    thumbnail_url: string | null
+    creator: { name: string; avatar_url: string | null; bio_ru: string | null }
+    category: { name_ru: string; slug: string } | null
+    lessons: {
+      id: string
+      title_ru: string
+      is_free: boolean
+      duration_sec: number | null
+      sort_order: number
+    }[]
+    _count: { purchases: number; reviews: number }
+  }
+
+  let product: ProductFull | null = null
   try {
     product = await db.product.findUnique({
       where: { slug: params.slug, is_active: true, moderation_status: 'approved' },
@@ -38,7 +57,7 @@ export default async function ProductPage({ params }: PageProps) {
         lessons: { orderBy: { sort_order: 'asc' } },
         _count: { select: { purchases: true, reviews: true } },
       },
-    })
+    }) as ProductFull | null
   } catch {
     // DB unavailable
   }

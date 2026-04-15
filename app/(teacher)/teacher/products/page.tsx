@@ -40,18 +40,31 @@ export default async function TeacherProductsPage() {
   if (!session) redirect('/login')
   if (session.role !== 'teacher' && session.role !== 'admin') redirect('/dashboard')
 
-  const products = await db.product.findMany({
-    where: { creator_id: session.id },
-    orderBy: { created_at: 'desc' },
-    select: {
-      id: true,
-      title_ru: true,
-      type: true,
-      moderation_status: true,
-      price: true,
-      created_at: true,
-    },
-  })
+  let products: {
+    id: string
+    title_ru: string
+    type: string
+    moderation_status: ModerationStatus
+    price: number
+    created_at: Date
+  }[] = []
+
+  try {
+    products = await db.product.findMany({
+      where: { creator_id: session.id },
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        title_ru: true,
+        type: true,
+        moderation_status: true,
+        price: true,
+        created_at: true,
+      },
+    })
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   return (
     <div className="space-y-6">

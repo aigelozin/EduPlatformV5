@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getSession } from '@/lib/auth/session'
-import { BarChart3, BookOpen, LayoutDashboard, Package, LogOut } from 'lucide-react'
+import { BarChart3, BookOpen, LayoutDashboard, Package, ShoppingBag, LogOut } from 'lucide-react'
 
 const navLinks = [
   { href: '/teacher', label: 'Обзор', icon: LayoutDashboard },
   { href: '/teacher/products', label: 'Продукты', icon: Package },
   { href: '/teacher/lessons', label: 'Уроки', icon: BookOpen },
   { href: '/teacher/analytics', label: 'Аналитика', icon: BarChart3 },
+  { href: '/teacher/orders', label: 'Продажи', icon: ShoppingBag },
 ]
 
 export default async function TeacherLayout({

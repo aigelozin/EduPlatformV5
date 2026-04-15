@@ -46,7 +46,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<un
     return NextResponse.json({
       data: lessons,
       error: null,
-      meta: { total: lessons.length },
+      meta: { total: lessons.length, page: 1, per_page: lessons.length, total_pages: 1 },
     } satisfies PaginatedResponse<unknown>)
   } catch (err) {
     if (err instanceof Error) {

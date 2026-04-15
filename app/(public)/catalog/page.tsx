@@ -36,8 +36,20 @@ export default async function CatalogPage({ searchParams }: PageProps) {
     }),
   }
 
+  type CatalogProduct = {
+    id: string
+    slug: string
+    type: string
+    title_ru: string
+    price: number
+    sale_price: number | null
+    thumbnail_url: string | null
+    category: { name_ru: string; slug: string } | null
+    _count: { reviews: number; purchases: number }
+  }
+
   let total = 0
-  let products: Awaited<ReturnType<typeof db.product.findMany>> = []
+  let products: CatalogProduct[] = []
   try {
     ;[total, products] = await Promise.all([
       db.product.count({ where }),
@@ -57,7 +69,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
         orderBy: { created_at: 'desc' },
         skip: (pageNum - 1) * perPage,
         take: perPage,
-      }),
+      }) as unknown as CatalogProduct[],
     ])
   } catch {
     // DB unavailable — show empty state

@@ -7,13 +7,22 @@ export const metadata: Metadata = {
 }
 
 export default async function TeachersPage() {
-  let teachers: Awaited<ReturnType<typeof db.profile.findMany>> = []
+  type TeacherPublic = {
+    id: string
+    name: string
+    email: string
+    avatar_url: string | null
+    bio_ru: string | null
+    _count: { products: number }
+  }
+
+  let teachers: TeacherPublic[] = []
   try {
     teachers = await db.profile.findMany({
       where: { role: 'teacher', is_active: true },
       include: { _count: { select: { products: { where: { is_active: true, moderation_status: 'approved' } } } } },
       orderBy: { created_at: 'asc' },
-    })
+    }) as unknown as TeacherPublic[]
   } catch {
     // DB unavailable — show empty state
   }

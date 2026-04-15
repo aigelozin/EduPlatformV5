@@ -19,24 +19,35 @@ export default async function TeacherAnalyticsPage() {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  const [productsCount, pendingCount, approvedCount, rejectedCount, allPurchases, monthPurchases] =
-    await Promise.all([
-      db.product.count({ where: { creator_id: session.id } }),
-      db.product.count({ where: { creator_id: session.id, moderation_status: 'pending' } }),
-      db.product.count({ where: { creator_id: session.id, moderation_status: 'approved' } }),
-      db.product.count({ where: { creator_id: session.id, moderation_status: 'rejected' } }),
-      db.purchase.findMany({
-        where: { product: { creator_id: session.id } },
-        select: { amount: true },
-      }),
-      db.purchase.findMany({
-        where: {
-          product: { creator_id: session.id },
-          created_at: { gte: startOfMonth },
-        },
-        select: { amount: true },
-      }),
-    ])
+  let productsCount = 0
+  let pendingCount = 0
+  let approvedCount = 0
+  let rejectedCount = 0
+  let allPurchases: { amount: number }[] = []
+  let monthPurchases: { amount: number }[] = []
+
+  try {
+    ;[productsCount, pendingCount, approvedCount, rejectedCount, allPurchases, monthPurchases] =
+      await Promise.all([
+        db.product.count({ where: { creator_id: session.id } }),
+        db.product.count({ where: { creator_id: session.id, moderation_status: 'pending' } }),
+        db.product.count({ where: { creator_id: session.id, moderation_status: 'approved' } }),
+        db.product.count({ where: { creator_id: session.id, moderation_status: 'rejected' } }),
+        db.purchase.findMany({
+          where: { product: { creator_id: session.id } },
+          select: { amount: true },
+        }),
+        db.purchase.findMany({
+          where: {
+            product: { creator_id: session.id },
+            created_at: { gte: startOfMonth },
+          },
+          select: { amount: true },
+        }),
+      ])
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   const totalRevenue = allPurchases.reduce((sum, p) => sum + p.amount, 0)
   const monthRevenue = monthPurchases.reduce((sum, p) => sum + p.amount, 0)

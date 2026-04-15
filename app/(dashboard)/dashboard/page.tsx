@@ -11,35 +11,52 @@ export default async function StudentDashboardPage() {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  const [activeSubscriptions, purchasesCount, ordersCount, recentPurchases] = await Promise.all([
-    db.userSubscription.count({
-      where: { user_id: session.id, expires_at: { gt: now } },
-    }),
-    db.purchase.count({ where: { user_id: session.id } }),
-    db.order.count({ where: { user_id: session.id } }),
-    db.purchase.findMany({
-      where: { user_id: session.id },
-      take: 3,
-      orderBy: { created_at: 'desc' },
-      include: {
-        product: {
-          select: { id: true, title_ru: true, thumbnail_url: true },
+  let activeSubscriptions = 0
+  let purchasesCount = 0
+  let ordersCount = 0
+  let recentPurchases: {
+    id: string
+    product_id: string
+    product: { id: string; title_ru: string; thumbnail_url: string | null }
+  }[] = []
+
+  try {
+    ;[activeSubscriptions, purchasesCount, ordersCount, recentPurchases] = await Promise.all([
+      db.userSubscription.count({
+        where: { user_id: session.id, expires_at: { gt: now } },
+      }),
+      db.purchase.count({ where: { user_id: session.id } }),
+      db.order.count({ where: { user_id: session.id } }),
+      db.purchase.findMany({
+        where: { user_id: session.id },
+        take: 3,
+        orderBy: { created_at: 'desc' },
+        include: {
+          product: {
+            select: { id: true, title_ru: true, thumbnail_url: true },
+          },
         },
-      },
-    }),
-  ])
+      }),
+    ])
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   // Fetch progress for recent purchases
   const progressMap = new Map<string, number>()
-  if (recentPurchases.length > 0) {
-    const progresses = await db.userProgress.findMany({
-      where: {
-        user_id: session.id,
-        product_id: { in: recentPurchases.map((p) => p.product_id) },
-      },
-      select: { product_id: true, progress_pct: true },
-    })
-    progresses.forEach((p) => progressMap.set(p.product_id, p.progress_pct))
+  try {
+    if (recentPurchases.length > 0) {
+      const progresses = await db.userProgress.findMany({
+        where: {
+          user_id: session.id,
+          product_id: { in: recentPurchases.map((p) => p.product_id) },
+        },
+        select: { product_id: true, progress_pct: true },
+      })
+      progresses.forEach((p) => progressMap.set(p.product_id, p.progress_pct))
+    }
+  } catch {
+    // DB unavailable
   }
 
   const stats = [

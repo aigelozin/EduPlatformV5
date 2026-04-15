@@ -21,8 +21,27 @@ function formatDuration(days: number): string {
 }
 
 export default async function HomePage() {
-  let popularProducts: Awaited<ReturnType<typeof db.product.findMany>> = []
-  let featuredPlans: Awaited<ReturnType<typeof db.subscription.findMany>> = []
+  type PopularProduct = {
+    id: string
+    slug: string
+    type: string
+    title_ru: string
+    price: number
+    sale_price: number | null
+    thumbnail_url: string | null
+    category: { name_ru: string; slug: string } | null
+    _count: { reviews: number; purchases: number }
+  }
+  type FeaturedPlan = {
+    id: string
+    name_ru: string
+    price: number
+    duration_days: number
+    product: { title_ru: string; category: { name_ru: string } | null } | null
+  }
+
+  let popularProducts: PopularProduct[] = []
+  let featuredPlans: FeaturedPlan[] = []
 
   try {
     ;[popularProducts, featuredPlans] = await Promise.all([
@@ -41,7 +60,7 @@ export default async function HomePage() {
         },
         orderBy: { created_at: 'desc' },
         take: 4,
-      }),
+      }) as unknown as PopularProduct[],
       db.subscription.findMany({
         where: { is_active: true },
         include: {
@@ -54,7 +73,7 @@ export default async function HomePage() {
         },
         orderBy: { price: 'asc' },
         take: 3,
-      }),
+      }) as unknown as FeaturedPlan[],
     ])
   } catch {
     // DB unavailable (local dev without DB) — show empty state
@@ -213,7 +232,7 @@ export default async function HomePage() {
               {featuredPlans.map((plan) => (
                 <div key={plan.id} className="rounded-xl border p-5 bg-background hover:shadow-sm transition-shadow">
                   <p className="font-semibold">{plan.name_ru}</p>
-                  {plan.product.category && (
+                  {plan.product?.category && (
                     <p className="text-xs text-muted-foreground mt-0.5">{plan.product.category.name_ru}</p>
                   )}
                   <p className="text-2xl font-bold mt-3">

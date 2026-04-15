@@ -26,7 +26,7 @@ export async function sendSubscriptionReminders(): Promise<void> {
           type: 'subscription_expiry',
           title_ru: 'Подписка истекает',
           body_ru: `Ваша подписка «${sub.subscription.name_ru}» истекает через 3 дня. Продлите, чтобы не потерять доступ.`,
-          link: '/subscriptions',
+          data: { link: '/subscriptions' },
         },
       })
 

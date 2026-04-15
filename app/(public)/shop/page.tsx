@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { db } from '@/lib/db/client'
+import { AddToCartButton } from '@/components/shop/AddToCartButton'
 
 export const metadata: Metadata = {
   title: 'Магазин | EduPlatform',
@@ -37,7 +38,19 @@ export default async function ShopPage({ searchParams }: PageProps) {
     },
   }
 
-  let products: Awaited<ReturnType<typeof db.product.findMany>> = []
+  type ShopListProduct = {
+    id: string
+    slug: string
+    type: string
+    title_ru: string
+    price: number
+    sale_price: number | null
+    thumbnail_url: string | null
+    category: { name_ru: string } | null
+    _count: { reviews: number }
+  }
+
+  let products: ShopListProduct[] = []
   try {
     products = await db.product.findMany({
       where,
@@ -53,7 +66,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
         _count: { select: { reviews: true } },
       },
       orderBy: { created_at: 'desc' },
-    })
+    }) as unknown as ShopListProduct[]
   } catch {
     // DB unavailable — show empty state
   }
@@ -150,16 +163,13 @@ export default async function ShopPage({ searchParams }: PageProps) {
                 </div>
               </Link>
               <div className="px-4 pb-4">
-                <button
-                  className="w-full py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
-                  data-product-id={product.id}
-                  data-product-type={product.type}
-                  data-product-title={product.title_ru}
-                  data-product-price={product.sale_price ?? product.price}
-                  data-product-thumbnail={product.thumbnail_url ?? ''}
-                >
-                  В корзину
-                </button>
+                <AddToCartButton
+                  productId={product.id}
+                  type={product.type}
+                  titleRu={product.title_ru}
+                  price={product.sale_price ?? product.price}
+                  thumbnailUrl={product.thumbnail_url}
+                />
               </div>
             </div>
           ))}

@@ -31,34 +31,49 @@ export default async function TeacherOverviewPage() {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  const [productsCount, salesData, monthRevenueData, recentProducts] = await Promise.all([
-    db.product.count({ where: { creator_id: session.id } }),
-    db.purchase.findMany({
-      where: {
-        product: { creator_id: session.id },
-      },
-      select: { amount: true },
-    }),
-    db.purchase.findMany({
-      where: {
-        product: { creator_id: session.id },
-        created_at: { gte: startOfMonth },
-      },
-      select: { amount: true },
-    }),
-    db.product.findMany({
-      where: { creator_id: session.id },
-      take: 5,
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        title_ru: true,
-        moderation_status: true,
-        price: true,
-        created_at: true,
-      },
-    }),
-  ])
+  let productsCount = 0
+  let salesData: { amount: number }[] = []
+  let monthRevenueData: { amount: number }[] = []
+  let recentProducts: {
+    id: string
+    title_ru: string
+    moderation_status: ModerationStatus
+    price: number
+    created_at: Date
+  }[] = []
+
+  try {
+    ;[productsCount, salesData, monthRevenueData, recentProducts] = await Promise.all([
+      db.product.count({ where: { creator_id: session.id } }),
+      db.purchase.findMany({
+        where: {
+          product: { creator_id: session.id },
+        },
+        select: { amount: true },
+      }),
+      db.purchase.findMany({
+        where: {
+          product: { creator_id: session.id },
+          created_at: { gte: startOfMonth },
+        },
+        select: { amount: true },
+      }),
+      db.product.findMany({
+        where: { creator_id: session.id },
+        take: 5,
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          title_ru: true,
+          moderation_status: true,
+          price: true,
+          created_at: true,
+        },
+      }),
+    ])
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   const totalRevenue = salesData.reduce((sum, p) => sum + p.amount, 0)
   const monthRevenue = monthRevenueData.reduce((sum, p) => sum + p.amount, 0)

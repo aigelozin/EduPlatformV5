@@ -10,7 +10,16 @@ export default async function AdminTeachersPage() {
   const session = await getSession()
   if (!session || session.role !== 'admin') redirect('/dashboard')
 
-  let teachers: Awaited<ReturnType<typeof db.profile.findMany>> = []
+  type TeacherWithCounts = {
+    id: string
+    name: string
+    email: string
+    created_at: Date
+    _count: { products: number }
+    products: { id: string }[]
+  }
+
+  let teachers: TeacherWithCounts[] = []
   try {
     teachers = await db.profile.findMany({
       where: { role: 'teacher' },
@@ -22,7 +31,7 @@ export default async function AdminTeachersPage() {
         },
       },
       orderBy: { created_at: 'desc' },
-    })
+    }) as TeacherWithCounts[]
   } catch {
     // DB unavailable
   }

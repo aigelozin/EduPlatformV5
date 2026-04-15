@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { checkAccess } from '@/lib/access/checkAccess'
 import { db } from '@/lib/db/client'
 
-const mockDb = db as {
+const mockDb = db as unknown as {
   purchase: { findUnique: ReturnType<typeof vi.fn> }
   userSubscription: { findFirst: ReturnType<typeof vi.fn> }
   product: { findUnique: ReturnType<typeof vi.fn> }

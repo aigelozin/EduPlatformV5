@@ -1,3 +1,4 @@
+import { beforeAll, afterAll } from 'vitest'
 import { PrismaClient } from '@prisma/client'
 
 const db = new PrismaClient({

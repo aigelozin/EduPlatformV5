@@ -8,25 +8,38 @@ export default async function StudentProgressPage() {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  const purchases = await db.purchase.findMany({
-    where: { user_id: session.id },
-    orderBy: { created_at: 'desc' },
-    include: {
-      product: {
-        select: { id: true, title_ru: true, thumbnail_url: true, slug: true },
-      },
-    },
-  })
+  type PurchaseWithProduct = {
+    id: string
+    product_id: string
+    product: { id: string; title_ru: string; thumbnail_url: string | null; slug: string }
+  }
 
-  const progressList = purchases.length > 0
-    ? await db.userProgress.findMany({
+  let purchases: PurchaseWithProduct[] = []
+  let progressList: { product_id: string; progress_pct: number; completed_at: Date | null }[] = []
+
+  try {
+    purchases = await db.purchase.findMany({
+      where: { user_id: session.id },
+      orderBy: { created_at: 'desc' },
+      include: {
+        product: {
+          select: { id: true, title_ru: true, thumbnail_url: true, slug: true },
+        },
+      },
+    }) as PurchaseWithProduct[]
+
+    if (purchases.length > 0) {
+      progressList = await db.userProgress.findMany({
         where: {
           user_id: session.id,
           product_id: { in: purchases.map((p) => p.product_id) },
         },
         select: { product_id: true, progress_pct: true, completed_at: true },
       })
-    : []
+    }
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   const progressMap = new Map(progressList.map((p) => [p.product_id, p]))
 

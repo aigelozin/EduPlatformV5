@@ -16,7 +16,15 @@ export default async function AdminPage() {
   let usersCount = 0, teachersCount = 0, approvedProducts = 0, pendingProducts = 0
   let ordersTotal = 0, revenueResult: { _sum: { total_amount: number | null } } = { _sum: { total_amount: null } }
   let monthOrders = 0
-  let recentOrders: Awaited<ReturnType<typeof db.order.findMany>> = []
+  type RecentOrder = {
+    id: string
+    status: string
+    total_amount: number
+    created_at: Date
+    user: { name: string; email: string }
+  }
+
+  let recentOrders: RecentOrder[] = []
 
   try {
     ;[usersCount, teachersCount, approvedProducts, pendingProducts, ordersTotal, revenueResult, monthOrders] =
@@ -33,7 +41,7 @@ export default async function AdminPage() {
       orderBy: { created_at: 'desc' },
       take: 5,
       include: { user: { select: { name: true, email: true } } },
-    })
+    }) as RecentOrder[]
   } catch {
     // DB unavailable — show empty state
   }

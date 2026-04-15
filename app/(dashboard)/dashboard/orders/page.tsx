@@ -32,17 +32,30 @@ export default async function StudentOrdersPage() {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  const orders = await db.order.findMany({
-    where: { user_id: session.id },
-    orderBy: { created_at: 'desc' },
-    include: {
-      items: {
-        include: {
-          product: { select: { title_ru: true } },
+  type OrderWithItems = {
+    id: string
+    status: OrderStatus
+    total_amount: number
+    created_at: Date
+    items: { id: string; quantity: number; product: { title_ru: string } }[]
+  }
+
+  let orders: OrderWithItems[] = []
+  try {
+    orders = await db.order.findMany({
+      where: { user_id: session.id },
+      orderBy: { created_at: 'desc' },
+      include: {
+        items: {
+          include: {
+            product: { select: { title_ru: true } },
+          },
         },
       },
-    },
-  })
+    }) as OrderWithItems[]
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   return (
     <div className="space-y-6">
