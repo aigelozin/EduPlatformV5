@@ -33,17 +33,22 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
   const { status } = searchParams
   const validStatuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded']
 
-  const orders = await db.order.findMany({
-    where: status && validStatuses.includes(status)
-      ? { status: status as 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' }
-      : {},
-    include: {
-      user: { select: { name: true, email: true } },
-      _count: { select: { items: true } },
-    },
-    orderBy: { created_at: 'desc' },
-    take: 50,
-  })
+  let orders: Awaited<ReturnType<typeof db.order.findMany>> = []
+  try {
+    orders = await db.order.findMany({
+      where: status && validStatuses.includes(status)
+        ? { status: status as 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' }
+        : {},
+      include: {
+        user: { select: { name: true, email: true } },
+        _count: { select: { items: true } },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 50,
+    })
+  } catch {
+    // DB unavailable
+  }
 
   return (
     <div className="space-y-6">

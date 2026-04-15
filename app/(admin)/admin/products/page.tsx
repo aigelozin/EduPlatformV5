@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/client'
+import { ProductModerationActions } from '@/components/admin/ProductModerationActions'
 
 export const metadata: Metadata = { title: 'Продукты | Администратор' }
 
@@ -33,15 +35,20 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
     ...(teacher_id ? { creator_id: teacher_id } : {}),
   }
 
-  const products = await db.product.findMany({
-    where,
-    include: {
-      creator: { select: { name: true, email: true } },
-      category: { select: { name_ru: true } },
-    },
-    orderBy: { created_at: 'desc' },
-    take: 50,
-  })
+  let products: Awaited<ReturnType<typeof db.product.findMany>> = []
+  try {
+    products = await db.product.findMany({
+      where,
+      include: {
+        creator: { select: { name: true, email: true } },
+        category: { select: { name_ru: true } },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 50,
+    })
+  } catch {
+    // DB unavailable
+  }
 
   const tabs = [
     { label: 'Все', value: '' },
@@ -59,7 +66,15 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Продукты</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Продукты</h1>
+        <Link
+          href="/admin/products/new"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          + Создать продукт
+        </Link>
+      </div>
 
       <div className="flex gap-2 flex-wrap">
         {tabs.map((tab) => (
@@ -115,28 +130,11 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
                     </span>
                   </td>
                   <td className="p-3">
-                    <div className="flex gap-2">
-                      {product.moderation_status === 'pending' && (
-                        <>
-                          <button
-                            className="text-xs text-green-600 hover:underline"
-                            onClick={undefined}
-                            data-action="approve"
-                            data-id={product.id}
-                          >
-                            Одобрить
-                          </button>
-                          <button
-                            className="text-xs text-red-600 hover:underline"
-                            onClick={undefined}
-                            data-action="reject"
-                            data-id={product.id}
-                          >
-                            Отклонить
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <ProductModerationActions
+                      productId={product.id}
+                      currentStatus={product.moderation_status}
+                      productTitle={product.title_ru}
+                    />
                   </td>
                 </tr>
               ))

@@ -10,17 +10,22 @@ export default async function AdminTeachersPage() {
   const session = await getSession()
   if (!session || session.role !== 'admin') redirect('/dashboard')
 
-  const teachers = await db.profile.findMany({
-    where: { role: 'teacher' },
-    include: {
-      _count: { select: { products: true } },
-      products: {
-        where: { moderation_status: 'pending' },
-        select: { id: true },
+  let teachers: Awaited<ReturnType<typeof db.profile.findMany>> = []
+  try {
+    teachers = await db.profile.findMany({
+      where: { role: 'teacher' },
+      include: {
+        _count: { select: { products: true } },
+        products: {
+          where: { moderation_status: 'pending' },
+          select: { id: true },
+        },
       },
-    },
-    orderBy: { created_at: 'desc' },
-  })
+      orderBy: { created_at: 'desc' },
+    })
+  } catch {
+    // DB unavailable
+  }
 
   return (
     <div className="space-y-6">

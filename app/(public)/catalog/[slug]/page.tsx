@@ -7,34 +7,41 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const product = await db.product.findUnique({
-    where: { slug: params.slug },
-    select: { title_ru: true, seo_title_ru: true, seo_description_ru: true, thumbnail_url: true },
-  })
-
-  if (!product) return { title: 'Курс не найден' }
-
-  return {
-    title: product.seo_title_ru ?? product.title_ru,
-    description: product.seo_description_ru ?? undefined,
-    openGraph: {
+  try {
+    const product = await db.product.findUnique({
+      where: { slug: params.slug },
+      select: { title_ru: true, seo_title_ru: true, seo_description_ru: true, thumbnail_url: true },
+    })
+    if (!product) return { title: 'Курс не найден' }
+    return {
       title: product.seo_title_ru ?? product.title_ru,
       description: product.seo_description_ru ?? undefined,
-      ...(product.thumbnail_url && { images: [product.thumbnail_url] }),
-    },
+      openGraph: {
+        title: product.seo_title_ru ?? product.title_ru,
+        description: product.seo_description_ru ?? undefined,
+        ...(product.thumbnail_url && { images: [product.thumbnail_url] }),
+      },
+    }
+  } catch {
+    return { title: 'Курс не найден' }
   }
 }
 
 export default async function ProductPage({ params }: PageProps) {
-  const product = await db.product.findUnique({
-    where: { slug: params.slug, is_active: true, moderation_status: 'approved' },
-    include: {
-      creator: { select: { name: true, avatar_url: true, bio_ru: true } },
-      category: { select: { name_ru: true, slug: true } },
-      lessons: { orderBy: { sort_order: 'asc' } },
-      _count: { select: { purchases: true, reviews: true } },
-    },
-  })
+  let product: Awaited<ReturnType<typeof db.product.findUnique>> = null
+  try {
+    product = await db.product.findUnique({
+      where: { slug: params.slug, is_active: true, moderation_status: 'approved' },
+      include: {
+        creator: { select: { name: true, avatar_url: true, bio_ru: true } },
+        category: { select: { name_ru: true, slug: true } },
+        lessons: { orderBy: { sort_order: 'asc' } },
+        _count: { select: { purchases: true, reviews: true } },
+      },
+    })
+  } catch {
+    // DB unavailable
+  }
 
   if (!product) notFound()
 

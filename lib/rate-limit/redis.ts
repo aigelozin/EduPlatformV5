@@ -36,14 +36,18 @@ export async function rateLimit(
   pipeline.zadd(redisKey, now, `${now}-${Math.random()}`)
   pipeline.expire(redisKey, windowSeconds)
 
-  const results = await pipeline.exec()
-  const count = (results?.[1]?.[1] as number) ?? 0
-  const reset = Math.ceil((now + windowMs) / 1000)
-
-  return {
-    allowed: count < limit,
-    remaining: Math.max(0, limit - count - 1),
-    reset,
+  try {
+    const results = await pipeline.exec()
+    const count = (results?.[1]?.[1] as number) ?? 0
+    const reset = Math.ceil((now + windowMs) / 1000)
+    return {
+      allowed: count < limit,
+      remaining: Math.max(0, limit - count - 1),
+      reset,
+    }
+  } catch {
+    // Redis недоступен — пропускаем (graceful degradation для локальной разработки)
+    return { allowed: true, remaining: limit, reset: Math.ceil((now + windowMs) / 1000) }
   }
 }
 

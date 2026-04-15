@@ -13,22 +13,30 @@ export default async function AdminPage() {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  const [usersCount, teachersCount, approvedProducts, pendingProducts, ordersTotal, revenueResult, monthOrders] =
-    await Promise.all([
-      db.profile.count(),
-      db.profile.count({ where: { role: 'teacher' } }),
-      db.product.count({ where: { moderation_status: 'approved', is_active: true } }),
-      db.product.count({ where: { moderation_status: 'pending' } }),
-      db.order.count(),
-      db.order.aggregate({ _sum: { total_amount: true }, where: { status: 'paid' } }),
-      db.order.count({ where: { created_at: { gte: startOfMonth } } }),
-    ])
+  let usersCount = 0, teachersCount = 0, approvedProducts = 0, pendingProducts = 0
+  let ordersTotal = 0, revenueResult: { _sum: { total_amount: number | null } } = { _sum: { total_amount: null } }
+  let monthOrders = 0
+  let recentOrders: Awaited<ReturnType<typeof db.order.findMany>> = []
 
-  const recentOrders = await db.order.findMany({
-    orderBy: { created_at: 'desc' },
-    take: 5,
-    include: { user: { select: { name: true, email: true } } },
-  })
+  try {
+    ;[usersCount, teachersCount, approvedProducts, pendingProducts, ordersTotal, revenueResult, monthOrders] =
+      await Promise.all([
+        db.profile.count(),
+        db.profile.count({ where: { role: 'teacher' } }),
+        db.product.count({ where: { moderation_status: 'approved', is_active: true } }),
+        db.product.count({ where: { moderation_status: 'pending' } }),
+        db.order.count(),
+        db.order.aggregate({ _sum: { total_amount: true }, where: { status: 'paid' } }),
+        db.order.count({ where: { created_at: { gte: startOfMonth } } }),
+      ])
+    recentOrders = await db.order.findMany({
+      orderBy: { created_at: 'desc' },
+      take: 5,
+      include: { user: { select: { name: true, email: true } } },
+    })
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   const statusColors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',

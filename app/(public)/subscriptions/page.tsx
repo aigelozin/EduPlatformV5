@@ -43,21 +43,26 @@ const FAQ = [
 ]
 
 export default async function SubscriptionsPage() {
-  const plans = await db.subscription.findMany({
-    where: { is_active: true },
-    include: {
-      product: {
-        select: {
-          id: true,
-          slug: true,
-          title_ru: true,
-          thumbnail_url: true,
-          category: { select: { name_ru: true, slug: true } },
+  let plans: Awaited<ReturnType<typeof db.subscription.findMany>> = []
+  try {
+    plans = await db.subscription.findMany({
+      where: { is_active: true },
+      include: {
+        product: {
+          select: {
+            id: true,
+            slug: true,
+            title_ru: true,
+            thumbnail_url: true,
+            category: { select: { name_ru: true, slug: true } },
+          },
         },
       },
-    },
-    orderBy: { price: 'asc' },
-  })
+      orderBy: { price: 'asc' },
+    })
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   // Выделяем "популярный" план — средний по цене
   const featuredIndex = Math.floor(plans.length / 2)

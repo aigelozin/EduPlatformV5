@@ -37,21 +37,26 @@ export default async function ShopPage({ searchParams }: PageProps) {
     },
   }
 
-  const products = await db.product.findMany({
-    where,
-    select: {
-      id: true,
-      slug: true,
-      type: true,
-      title_ru: true,
-      price: true,
-      sale_price: true,
-      thumbnail_url: true,
-      category: { select: { name_ru: true } },
-      _count: { select: { reviews: true } },
-    },
-    orderBy: { created_at: 'desc' },
-  })
+  let products: Awaited<ReturnType<typeof db.product.findMany>> = []
+  try {
+    products = await db.product.findMany({
+      where,
+      select: {
+        id: true,
+        slug: true,
+        type: true,
+        title_ru: true,
+        price: true,
+        sale_price: true,
+        thumbnail_url: true,
+        category: { select: { name_ru: true } },
+        _count: { select: { reviews: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    })
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   return (
     <div className="container py-10">

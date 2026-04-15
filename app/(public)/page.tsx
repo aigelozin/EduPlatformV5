@@ -21,37 +21,44 @@ function formatDuration(days: number): string {
 }
 
 export default async function HomePage() {
-  const [popularProducts, featuredPlans] = await Promise.all([
-    db.product.findMany({
-      where: { is_active: true, moderation_status: 'approved' },
-      select: {
-        id: true,
-        slug: true,
-        type: true,
-        title_ru: true,
-        price: true,
-        sale_price: true,
-        thumbnail_url: true,
-        category: { select: { name_ru: true, slug: true } },
-        _count: { select: { reviews: true, purchases: true } },
-      },
-      orderBy: { created_at: 'desc' },
-      take: 4,
-    }),
-    db.subscription.findMany({
-      where: { is_active: true },
-      include: {
-        product: {
-          select: {
-            title_ru: true,
-            category: { select: { name_ru: true } },
+  let popularProducts: Awaited<ReturnType<typeof db.product.findMany>> = []
+  let featuredPlans: Awaited<ReturnType<typeof db.subscription.findMany>> = []
+
+  try {
+    ;[popularProducts, featuredPlans] = await Promise.all([
+      db.product.findMany({
+        where: { is_active: true, moderation_status: 'approved' },
+        select: {
+          id: true,
+          slug: true,
+          type: true,
+          title_ru: true,
+          price: true,
+          sale_price: true,
+          thumbnail_url: true,
+          category: { select: { name_ru: true, slug: true } },
+          _count: { select: { reviews: true, purchases: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        take: 4,
+      }),
+      db.subscription.findMany({
+        where: { is_active: true },
+        include: {
+          product: {
+            select: {
+              title_ru: true,
+              category: { select: { name_ru: true } },
+            },
           },
         },
-      },
-      orderBy: { price: 'asc' },
-      take: 3,
-    }),
-  ])
+        orderBy: { price: 'asc' },
+        take: 3,
+      }),
+    ])
+  } catch {
+    // DB unavailable (local dev without DB) — show empty state
+  }
 
   return (
     <>

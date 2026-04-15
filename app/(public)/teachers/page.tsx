@@ -7,11 +7,16 @@ export const metadata: Metadata = {
 }
 
 export default async function TeachersPage() {
-  const teachers = await db.profile.findMany({
-    where: { role: 'teacher', is_active: true },
-    include: { _count: { select: { products: { where: { is_active: true, moderation_status: 'approved' } } } } },
-    orderBy: { created_at: 'asc' },
-  })
+  let teachers: Awaited<ReturnType<typeof db.profile.findMany>> = []
+  try {
+    teachers = await db.profile.findMany({
+      where: { role: 'teacher', is_active: true },
+      include: { _count: { select: { products: { where: { is_active: true, moderation_status: 'approved' } } } } },
+      orderBy: { created_at: 'asc' },
+    })
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   return (
     <div className="container py-12">

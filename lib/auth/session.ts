@@ -1,7 +1,16 @@
 import { auth } from '@/lib/auth/config'
 import type { SessionUser } from '@/types'
 
+const DEV_ADMIN: SessionUser = {
+  id: 'dev-admin',
+  email: 'admin@localhost',
+  name: 'Dev Admin',
+  role: 'admin',
+  avatar_url: null,
+}
+
 export async function getSession(): Promise<SessionUser | null> {
+  if (process.env.DEV_BYPASS_AUTH === 'true') return DEV_ADMIN
   const session = await auth()
   if (!session?.user?.id) return null
   return session.user as SessionUser

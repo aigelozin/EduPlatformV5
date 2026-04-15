@@ -36,26 +36,32 @@ export default async function CatalogPage({ searchParams }: PageProps) {
     }),
   }
 
-  const [total, products] = await Promise.all([
-    db.product.count({ where }),
-    db.product.findMany({
-      where,
-      select: {
-        id: true,
-        slug: true,
-        type: true,
-        title_ru: true,
-        price: true,
-        sale_price: true,
-        thumbnail_url: true,
-        category: { select: { name_ru: true, slug: true } },
-        _count: { select: { reviews: true, purchases: true } },
-      },
-      orderBy: { created_at: 'desc' },
-      skip: (pageNum - 1) * perPage,
-      take: perPage,
-    }),
-  ])
+  let total = 0
+  let products: Awaited<ReturnType<typeof db.product.findMany>> = []
+  try {
+    ;[total, products] = await Promise.all([
+      db.product.count({ where }),
+      db.product.findMany({
+        where,
+        select: {
+          id: true,
+          slug: true,
+          type: true,
+          title_ru: true,
+          price: true,
+          sale_price: true,
+          thumbnail_url: true,
+          category: { select: { name_ru: true, slug: true } },
+          _count: { select: { reviews: true, purchases: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        skip: (pageNum - 1) * perPage,
+        take: perPage,
+      }),
+    ])
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   const totalPages = Math.ceil(total / perPage)
 

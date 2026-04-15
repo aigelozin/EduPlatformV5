@@ -8,15 +8,16 @@ export const metadata: Metadata = {
 
 export default async function LivePage() {
   const now = new Date()
-  const livestreams = await db.livestream.findMany({
-    where: { scheduled_at: { gte: now } },
-    orderBy: { scheduled_at: 'asc' },
-    include: {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore — livestream связан с product через product_id
-    },
-    take: 20,
-  })
+  let livestreams: Awaited<ReturnType<typeof db.livestream.findMany>> = []
+  try {
+    livestreams = await db.livestream.findMany({
+      where: { scheduled_at: { gte: now } },
+      orderBy: { scheduled_at: 'asc' },
+      take: 20,
+    })
+  } catch {
+    // DB unavailable — show empty state
+  }
 
   return (
     <div className="container py-12">

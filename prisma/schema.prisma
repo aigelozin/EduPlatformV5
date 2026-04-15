@@ -150,8 +150,10 @@ model Product {
   category          Category?        @relation(fields: [category_id], references: [id])
   variants          ProductVariant[]
   lessons           Lesson[]
-  courses           CourseProduct[]
-  bundles           BundleProduct[]
+  courses           CourseProduct[]  @relation("CourseToProduct")
+  course_lessons    CourseProduct[]  @relation("ProductInCourse")
+  bundles           BundleProduct[]  @relation("BundleToProduct")
+  bundle_items      BundleProduct[]  @relation("ProductInBundle")
   purchases         Purchase[]
   order_items       OrderItem[]
   reviews           Review[]
@@ -208,7 +210,7 @@ model CourseProduct {
   sort_order Int     @default(0)
 
   course     Product @relation("CourseToProduct", fields: [course_id], references: [id], onDelete: Cascade)
-  product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  product    Product @relation("ProductInCourse", fields: [product_id], references: [id], onDelete: Cascade)
 
   @@id([course_id, product_id])
   @@map("courses")
@@ -220,7 +222,7 @@ model BundleProduct {
   product_id String
 
   bundle     Product @relation("BundleToProduct", fields: [bundle_id], references: [id], onDelete: Cascade)
-  product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  product    Product @relation("ProductInBundle", fields: [product_id], references: [id], onDelete: Cascade)
 
   @@id([bundle_id, product_id])
   @@map("bundles")
