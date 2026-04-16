@@ -18,7 +18,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse<un
   try {
     await requireRole('admin')
     const body: unknown = await req.json()
-    const { brand, typography, homepage, seo } = body as Record<string, unknown>
+    const { brand, typography, homepage, seo } = body as Record<string, object>
     const row = await db.siteSettings.upsert({
       where: { id: 'main' },
       create: {
@@ -29,10 +29,10 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse<un
         seo: seo ?? {},
       },
       update: {
-        ...(brand !== undefined && { brand }),
-        ...(typography !== undefined && { typography }),
-        ...(homepage !== undefined && { homepage }),
-        ...(seo !== undefined && { seo }),
+        ...(brand != null && { brand }),
+        ...(typography != null && { typography }),
+        ...(homepage != null && { homepage }),
+        ...(seo != null && { seo }),
       },
     })
     revalidateTag('site-settings')

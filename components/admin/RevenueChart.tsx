@@ -48,9 +48,10 @@ export function RevenueChart({ data }: Props) {
           className="text-muted-foreground"
         />
         <Tooltip
-          formatter={(v: number) => [formatRub(v), 'Выручка']}
-          labelFormatter={(label: string) => {
-            const [year, month, day] = label.split('-')
+          formatter={(v) => [formatRub(Number(v)), 'Выручка']}
+          labelFormatter={(label) => {
+            const str = String(label)
+            const [year, month, day] = str.split('-')
             return `${day}.${month}.${year}`
           }}
         />
