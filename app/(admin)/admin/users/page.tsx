@@ -47,8 +47,8 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     if (statusParam === 'blocked') where.is_active = false
     if (q) {
       where.OR = [
-        { email: { contains: q, mode: 'insensitive' } },
-        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q } },
+        { name: { contains: q } },
       ]
     }
 

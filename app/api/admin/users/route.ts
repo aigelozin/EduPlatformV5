@@ -23,8 +23,8 @@ export async function GET(req: NextRequest): Promise<NextResponse<PaginatedRespo
 
     if (q) {
       where.OR = [
-        { email: { contains: q, mode: 'insensitive' } },
-        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q } },
+        { name: { contains: q } },
       ]
     }
 
