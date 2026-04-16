@@ -1,13 +1,29 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getSession } from '@/lib/auth/session'
-import { LayoutDashboard, Users, Package, ShoppingBag, LogOut } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  ShoppingBag,
+  BarChart2,
+  Star,
+  MessageSquare,
+  Settings,
+  UserCog,
+  LogOut,
+} from 'lucide-react'
 
 const navLinks = [
   { href: '/admin', label: 'Обзор', icon: LayoutDashboard },
   { href: '/admin/teachers', label: 'Преподаватели', icon: Users },
   { href: '/admin/products', label: 'Продукты', icon: Package },
   { href: '/admin/orders', label: 'Заказы', icon: ShoppingBag },
+  { href: '/admin/users', label: 'Пользователи', icon: UserCog },
+  { href: '/admin/analytics', label: 'Аналитика', icon: BarChart2 },
+  { href: '/admin/reviews', label: 'Отзывы', icon: Star },
+  { href: '/admin/chats', label: 'Чаты', icon: MessageSquare },
+  { href: '/admin/settings', label: 'Настройки', icon: Settings },
 ]
 
 export default async function AdminLayout({

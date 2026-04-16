@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
+import { SiteSettingsStyle } from '@/components/layout/SiteSettingsStyle'
 import '@/app/globals.css'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
@@ -26,6 +27,9 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <SiteSettingsStyle />
+      </head>
       <body className={inter.className}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider

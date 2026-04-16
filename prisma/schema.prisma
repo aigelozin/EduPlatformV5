@@ -80,30 +80,46 @@ enum NotificationType {
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
-model Profile {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  password_hash  String?
-  name           String
-  avatar_url     String?
-  role           Role     @default(student)
-  bio_ru         String?
-  bio_en         String?  // опционально (EN убран из основного UI)
-  preferred_lang String   @default("ru")
-  is_active      Boolean  @default(true)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+model SiteSettings {
+  id         String   @id @default("main")
+  brand      Json     @default("{}")
+  typography Json     @default("{}")
+  homepage   Json     @default("{}")
+  seo        Json     @default("{}")
+  updated_at DateTime @updatedAt
 
-  products          Product[]
-  user_subscriptions UserSubscription[]
-  purchases         Purchase[]
-  orders            Order[]
-  reviews           Review[]
-  user_progress     UserProgress[]
-  consent_logs      ConsentLog[]
-  ai_chat_sessions  AiChatSession[]
-  notifications     Notification[]
-  teacher_payouts   TeacherPayout[]
+  @@map("site_settings")
+}
+
+model Profile {
+  id                    String   @id @default(cuid())
+  email                 String   @unique
+  password_hash         String?
+  name                  String
+  avatar_url            String?
+  role                  Role     @default(student)
+  bio_ru                String?
+  bio_en                String?  // опционально (EN убран из основного UI)
+  preferred_lang        String   @default("ru")
+  is_active             Boolean  @default(true)
+  city                  String?
+  registration_ip       String?
+  force_password_change Boolean  @default(false)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  products              Product[]
+  user_subscriptions    UserSubscription[]
+  purchases             Purchase[]
+  orders                Order[]
+  reviews               Review[]
+  user_progress         UserProgress[]
+  consent_logs          ConsentLog[]
+  ai_chat_sessions      AiChatSession[]
+  notifications         Notification[]
+  teacher_payouts       TeacherPayout[]
+  product_messages      ProductMessage[]
+  livestream_messages   LivestreamMessage[]
 
   @@map("profiles")
 }
@@ -133,6 +149,9 @@ model Product {
   description_en    String?
   seo_title_ru      String?
   seo_description_ru String?
+  ai_description_ru String?
+  views_count       Int              @default(0)
+  duration_minutes  Int?
   price             Int              // в копейках
   sale_price        Int?
   thumbnail_url     String?
@@ -159,11 +178,29 @@ model Product {
   reviews           Review[]
   user_progress     UserProgress[]
   subscriptions     Subscription[]
+  product_messages  ProductMessage[]
 
   @@index([creator_id])
   @@index([category_id])
   @@index([type, is_active])
   @@map("products")
+}
+
+model ProductMessage {
+  id         String   @id @default(cuid())
+  product_id String
+  user_id    String
+  body_ru    String
+  is_pinned  Boolean  @default(false)
+  is_deleted Boolean  @default(false)
+  deleted_by String?
+  created_at DateTime @default(now())
+
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user       Profile  @relation(fields: [user_id], references: [id])
+
+  @@index([product_id, created_at])
+  @@map("product_messages")
 }
 
 model ProductVariant {
@@ -235,10 +272,28 @@ model Livestream {
   scheduled_at    DateTime
   ended_at        DateTime?
   recording_url   String?
-  recording_source VideoSource?
-  created_at      DateTime  @default(now())
+  recording_source    VideoSource?
+  created_at          DateTime  @default(now())
+
+  livestream_messages LivestreamMessage[]
 
   @@map("livestreams")
+}
+
+model LivestreamMessage {
+  id            String     @id @default(cuid())
+  livestream_id String
+  user_id       String
+  body_ru       String
+  is_deleted    Boolean    @default(false)
+  deleted_by    String?
+  created_at    DateTime   @default(now())
+
+  livestream    Livestream @relation(fields: [livestream_id], references: [id], onDelete: Cascade)
+  user          Profile    @relation(fields: [user_id], references: [id])
+
+  @@index([livestream_id, created_at])
+  @@map("livestream_messages")
 }
 
 model Subscription {
@@ -408,6 +463,8 @@ model Review {
   product_id String
   rating     Int      // 1-5
   text_ru    String?
+  reply_ru   String?
+  replied_at DateTime?
   is_visible Boolean  @default(true)
   created_at DateTime @default(now())
 
