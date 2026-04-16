@@ -18,6 +18,15 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
+  // Force password change — редиректим на /change-password при любом маршруте
+  if (
+    session?.user &&
+    (session.user as { force_password_change?: boolean }).force_password_change === true &&
+    pathname !== '/change-password'
+  ) {
+    return NextResponse.redirect(new URL('/change-password', req.url))
+  }
+
   // Protect routes
   if (matchesRoute(pathname, protectedRoutes) && !session) {
     return NextResponse.redirect(new URL('/login', req.url))

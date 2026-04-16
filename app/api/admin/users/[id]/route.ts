@@ -7,6 +7,7 @@ import { z } from 'zod'
 const UpdateUserSchema = z.object({
   role: z.enum(['admin', 'teacher', 'subscriber', 'student']).optional(),
   is_active: z.boolean().optional(),
+  force_password_change: z.boolean().optional(),
 })
 
 // PATCH /api/admin/users/[id] — изменить роль или заблокировать пользователя

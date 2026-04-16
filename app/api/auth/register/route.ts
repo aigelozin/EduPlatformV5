@@ -47,6 +47,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<u
         password_hash,
         name,
         role: 'student',
+        registration_ip: ip,
         consent_logs: {
           create: {
             consent_type: 'registration',
