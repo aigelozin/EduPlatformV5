@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ChatWidget } from '@/components/ai-chat/ChatWidget'
+import { WaveCard } from '@/components/layout/WaveCard'
 import { db } from '@/lib/db/client'
 
 export const metadata: Metadata = {
@@ -82,33 +83,37 @@ export default async function HomePage() {
   return (
     <>
       {/* 1. Hero */}
-      <section className="relative bg-gradient-to-br from-primary/10 to-background py-24">
-        <div className="container text-center space-y-6">
-          <h1 className="text-5xl font-bold tracking-tight">
-            Учись у лучших преподавателей
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Йога, массаж, фитнес, творчество и бизнес — онлайн-курсы, прямые трансляции и физические товары в одном месте.
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link
-              href="/catalog"
-              className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
-            >
-              Смотреть курсы
-            </Link>
-            <Link
-              href="/subscriptions"
-              className="px-8 py-3 border rounded-lg font-semibold hover:bg-accent transition-colors"
-            >
-              Подписки
-            </Link>
-          </div>
+      <section className="relative z-10 px-4 pt-20 pb-16 text-center animate-fade-up">
+        <h1 className="mb-4 text-4xl font-bold tracking-tight text-[var(--text-foam)] md:text-6xl">
+          Wisdom<span className="font-light text-[var(--wave-accent)]">Wave</span>
+        </h1>
+        <p className="mx-auto mb-8 max-w-xl text-lg text-[var(--text-muted-foam)]">
+          Образовательная платформа — йога, массаж, фитнес и творчество онлайн
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Link
+            href="/catalog"
+            className="rounded-xl px-8 py-3 text-sm font-semibold text-white transition-all
+              hover:shadow-lg hover:-translate-y-0.5"
+            style={{
+              background: 'linear-gradient(135deg, var(--wave-accent), oklch(0.55 0.22 290))',
+              boxShadow: '0 4px 20px var(--wave-accent-glow)',
+            }}
+          >
+            Начать обучение
+          </Link>
+          <Link
+            href="/subscriptions"
+            className="rounded-xl border border-[var(--card-border)] px-8 py-3 text-sm font-semibold
+              text-[var(--text-foam)] transition-colors hover:border-[var(--wave-accent)]"
+          >
+            Подписки
+          </Link>
         </div>
       </section>
 
       {/* 2. Категории */}
-      <section className="container py-16">
+      <section className="relative z-10 container py-16">
         <h2 className="text-3xl font-bold mb-8 text-center">Категории</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
@@ -132,7 +137,7 @@ export default async function HomePage() {
 
       {/* 3. Популярные курсы */}
       {popularProducts.length > 0 && (
-        <section className="bg-muted/40 py-16">
+        <section className="relative z-10 bg-muted/40 py-16">
           <div className="container">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-bold">Популярные курсы</h2>
@@ -140,53 +145,54 @@ export default async function HomePage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {popularProducts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/catalog/${product.slug}`}
-                  className="group bg-background rounded-xl border overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  <div className="aspect-video bg-muted overflow-hidden">
-                    {product.thumbnail_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={product.thumbnail_url}
-                        alt={product.title_ru}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                        Нет обложки
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4 space-y-1">
-                    {product.category && (
-                      <span className="text-xs text-muted-foreground">{product.category.name_ru}</span>
-                    )}
-                    <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                      {product.title_ru}
-                    </h3>
-                    <div className="flex items-center justify-between pt-1">
-                      {product.sale_price ? (
-                        <div className="flex items-center gap-1">
-                          <span className="font-bold text-primary text-sm">
-                            {(product.sale_price / 100).toLocaleString('ru-RU')} ₽
-                          </span>
-                          <span className="text-xs text-muted-foreground line-through">
-                            {(product.price / 100).toLocaleString('ru-RU')} ₽
-                          </span>
-                        </div>
+                <WaveCard key={product.id} waveColor="#0c1a38" waveAccent="oklch(0.63 0.26 272)">
+                  <Link
+                    href={`/catalog/${product.slug}`}
+                    className="group block h-full overflow-hidden"
+                  >
+                    <div className="aspect-video bg-muted overflow-hidden">
+                      {product.thumbnail_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.thumbnail_url}
+                          alt={product.title_ru}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                       ) : (
-                        <span className="font-bold text-sm">
-                          {(product.price / 100).toLocaleString('ru-RU')} ₽
-                        </span>
-                      )}
-                      {product._count.reviews > 0 && (
-                        <span className="text-xs text-muted-foreground">★ {product._count.reviews}</span>
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                          Нет обложки
+                        </div>
                       )}
                     </div>
-                  </div>
-                </Link>
+                    <div className="p-4 space-y-1">
+                      {product.category && (
+                        <span className="text-xs text-muted-foreground">{product.category.name_ru}</span>
+                      )}
+                      <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                        {product.title_ru}
+                      </h3>
+                      <div className="flex items-center justify-between pt-1">
+                        {product.sale_price ? (
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-primary text-sm">
+                              {(product.sale_price / 100).toLocaleString('ru-RU')} ₽
+                            </span>
+                            <span className="text-xs text-muted-foreground line-through">
+                              {(product.price / 100).toLocaleString('ru-RU')} ₽
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-sm">
+                            {(product.price / 100).toLocaleString('ru-RU')} ₽
+                          </span>
+                        )}
+                        {product._count.reviews > 0 && (
+                          <span className="text-xs text-muted-foreground">★ {product._count.reviews}</span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                </WaveCard>
               ))}
             </div>
           </div>
@@ -194,7 +200,7 @@ export default async function HomePage() {
       )}
 
       {/* 4. Преимущества */}
-      <section className="container py-16">
+      <section className="relative z-10 container py-16">
         <h2 className="text-3xl font-bold mb-10 text-center">Почему EduPlatform</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
@@ -212,7 +218,7 @@ export default async function HomePage() {
       </section>
 
       {/* 5. Трансляции */}
-      <section className="bg-muted/40 py-16">
+      <section className="relative z-10 bg-muted/40 py-16">
         <div className="container">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold">Прямые трансляции</h2>
@@ -223,7 +229,7 @@ export default async function HomePage() {
       </section>
 
       {/* 6. Подписки */}
-      <section className="container py-16">
+      <section className="relative z-10 container py-16">
         <h2 className="text-3xl font-bold mb-4 text-center">Планы подписок</h2>
         <p className="text-muted-foreground text-center mb-8">Получите неограниченный доступ к курсам категории</p>
         {featuredPlans.length > 0 ? (
@@ -272,7 +278,7 @@ export default async function HomePage() {
       </section>
 
       {/* 7. Магазин */}
-      <section className="bg-muted/40 py-16">
+      <section className="relative z-10 bg-muted/40 py-16">
         <div className="container">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold">Магазин</h2>
@@ -283,7 +289,7 @@ export default async function HomePage() {
       </section>
 
       {/* 8. Стать преподавателем */}
-      <section className="container py-16 text-center">
+      <section className="relative z-10 container py-16 text-center">
         <h2 className="text-3xl font-bold mb-4">Вы преподаватель?</h2>
         <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
           Создавайте и продавайте свои курсы. Получайте выплаты через YooKassa.
@@ -297,7 +303,7 @@ export default async function HomePage() {
       </section>
 
       {/* 9. Преподаватели */}
-      <section className="bg-muted/40 py-16">
+      <section className="relative z-10 bg-muted/40 py-16">
         <div className="container">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold">Наши преподаватели</h2>
@@ -308,13 +314,13 @@ export default async function HomePage() {
       </section>
 
       {/* 10. Отзывы */}
-      <section className="container py-16">
+      <section className="relative z-10 container py-16">
         <h2 className="text-3xl font-bold mb-8 text-center">Отзывы студентов</h2>
         <p className="text-muted-foreground text-center">Отзывы загружаются динамически — в следующей фазе</p>
       </section>
 
       {/* 11. Доставка */}
-      <section className="bg-muted/40 py-8">
+      <section className="relative z-10 bg-muted/40 py-8">
         <div className="container flex flex-col sm:flex-row items-center justify-center gap-8 text-center">
           <div>
             <p className="font-semibold">📦 CDEK</p>
@@ -332,7 +338,7 @@ export default async function HomePage() {
       </section>
 
       {/* 12. CTA нижний */}
-      <section className="container py-20 text-center">
+      <section className="relative z-10 container py-20 text-center">
         <h2 className="text-3xl font-bold mb-4">Начните обучение сегодня</h2>
         <p className="text-muted-foreground mb-8">Первый урок — бесплатно</p>
         <Link
