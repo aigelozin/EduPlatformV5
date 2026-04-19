@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
 // Mock Prisma client for unit tests
