@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { SiteSettingsStyle } from '@/components/layout/SiteSettingsStyle'
+import { OceanBackground } from '@/components/layout/OceanBackground'
 import { OrganizationSchema } from '@/components/seo/SchemaOrg'
 import { getSiteSettings } from '@/lib/settings/site-settings'
 import '@/app/globals.css'
@@ -54,6 +55,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <OceanBackground />
             {children}
           </ThemeProvider>
         </NextIntlClientProvider>
