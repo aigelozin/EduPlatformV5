@@ -87,3 +87,23 @@
     --text-muted-foam: rgba(20,60,130,0.55);
   }
 }
+
+/* Ocean wave fills */
+@layer components {
+  .wave-fill-1 {
+    fill: var(--ocean2);
+  }
+
+  .wave-fill-2 {
+    fill: var(--ocean1);
+  }
+
+  .wind-stream {
+    top: var(--ws-top);
+    left: var(--ws-left);
+    width: var(--ws-width);
+    animation-delay: var(--ws-delay);
+    animation-duration: var(--ws-dur);
+    background: linear-gradient(90deg, transparent, var(--foam-light), transparent);
+  }
+}
