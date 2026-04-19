@@ -56,6 +56,10 @@ const config: Config = {
         'card-border': 'var(--card-border)',
         'text-foam': 'var(--text-foam)',
         'text-muted-foam': 'var(--text-muted-foam)',
+        foam: 'var(--foam)',
+        'foam-light': 'var(--foam-light)',
+        'wave-accent-glow': 'var(--wave-accent-glow)',
+        'wave-gold': 'var(--wave-gold)',
       },
       borderRadius: {
         lg: 'var(--radius)',
