@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { db } from '@/lib/db/client'
+import { WaveCard } from '@/components/layout/WaveCard'
 
 interface PageProps {
   params: { slug: string }
@@ -69,10 +70,26 @@ export default async function ProductPage({ params }: PageProps) {
     : `${(product.price / 100).toLocaleString('ru-RU')} ₽`
 
   return (
-    <div className="container py-10">
+    <div className="container py-10 relative z-10">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Основная информация */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Wave Hero Section */}
+          <section
+            className="relative z-10 overflow-hidden rounded-3xl mx-4 mt-4 p-8 md:p-12 mb-8"
+            style={{
+              background: `linear-gradient(160deg, #081228 0%, oklch(0.63 0.26 272 / 0.2) 100%)`,
+              border: '1px solid var(--card-border)',
+            }}
+          >
+            <h1 className="mb-3 text-3xl font-bold text-[var(--text-foam)] md:text-4xl">
+              {product.title_ru}
+            </h1>
+            {product.description_ru && (
+              <p className="text-[var(--text-muted-foam)]">{product.description_ru}</p>
+            )}
+          </section>
+
           {product.thumbnail_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -86,15 +103,9 @@ export default async function ProductPage({ params }: PageProps) {
             <span className="text-sm text-muted-foreground">{product.category.name_ru}</span>
           )}
 
-          <h1 className="text-3xl font-bold">{product.title_ru}</h1>
-
-          {product.description_ru && (
-            <p className="text-muted-foreground leading-relaxed">{product.description_ru}</p>
-          )}
-
           {/* Программа курса */}
           {product.lessons.length > 0 && (
-            <div>
+            <WaveCard className="p-6 relative z-10">
               <h2 className="text-xl font-semibold mb-4">
                 Программа ({product.lessons.length} уроков)
               </h2>
@@ -121,28 +132,30 @@ export default async function ProductPage({ params }: PageProps) {
                   </div>
                 ))}
               </div>
-            </div>
+            </WaveCard>
           )}
 
           {/* Преподаватель */}
-          <div className="flex items-center gap-4 p-4 rounded-xl border">
-            {product.creator.avatar_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.creator.avatar_url}
-                alt={product.creator.name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-            )}
-            <div>
-              <p className="font-semibold">{product.creator.name}</p>
-              {product.creator.bio_ru && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {product.creator.bio_ru}
-                </p>
+          <WaveCard className="p-6 relative z-10">
+            <div className="flex items-center gap-4">
+              {product.creator.avatar_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={product.creator.avatar_url}
+                  alt={product.creator.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
               )}
+              <div>
+                <p className="font-semibold">{product.creator.name}</p>
+                {product.creator.bio_ru && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {product.creator.bio_ru}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          </WaveCard>
         </div>
 
         {/* Карточка покупки */}
