@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Wisdom Wave — Мобильная версия</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: #0a0e1c;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Outfit', system-ui, sans-serif;
+  overflow: auto;
+}
+#root { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 20px; }
+
+@keyframes waveFlow { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-8%)} }
+@keyframes windDrift { 0%{opacity:0;transform:translateX(-20px)} 30%{opacity:1} 70%{opacity:0.6} 100%{opacity:0;transform:translateX(40px)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef } = React;
+
+const COURSES = [
+  { id:1, title:"Дизайн интерфейсов", category:"Дизайн", progress:68, waveColor:'#1a1060', waveAccent:'oklch(0.63 0.26 272)', duration:"36 ч", lessons:48, rating:4.9,
+    chapters:[
+      {id:1,title:"Введение в UI/UX",duration:"12:30",done:true},
+      {id:2,title:"Визуальная иерархия",duration:"18:45",done:true},
+      {id:3,title:"Цветовая теория",duration:"22:10",done:true},
+      {id:4,title:"Типографика",duration:"15:20",done:false,active:true},
+      {id:5,title:"Компоненты Figma",duration:"28:00",done:false},
+    ]
+  },
+  { id:2, title:"Python: Анализ данных", category:"Код", progress:23, waveColor:'#0a2a1a', waveAccent:'oklch(0.65 0.20 160)', duration:"52 ч", lessons:64, rating:4.8,
+    chapters:[
+      {id:1,title:"Основы Python",duration:"20:00",done:true},
+      {id:2,title:"NumPy",duration:"25:30",done:false,active:true},
+      {id:3,title:"Pandas",duration:"32:15",done:false},
+    ]
+  },
+  { id:3, title:"Продуктовый маркетинг", category:"Бизнес", progress:0, waveColor:'#221a08', waveAccent:'oklch(0.72 0.18 55)', duration:"28 ч", lessons:36, rating:4.7, chapters:[] },
+  { id:4, title:"Финансовая грамотность", category:"Финансы", progress:100, waveColor:'#22100a', waveAccent:'oklch(0.70 0.18 25)', duration:"18 ч", lessons:24, rating:4.9, chapters:[] },
+];
+
+// ── Mini wave SVG ─────────────────────────────────────────
+const MiniWave = ({ color, accent }) => (
+  <svg viewBox="0 0 200 24" preserveAspectRatio="none" style={{ display:'block', width:'100%', height:24 }}>
+    <defs>
+      <linearGradient id={`mg-${color.slice(1,5)}`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={accent} stopOpacity="0.3"/>
+        <stop offset="100%" stopColor={color} stopOpacity="0.9"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,12 C20,4 40,20 60,12 C80,4 100,20 120,12 C140,4 160,20 180,12 C190,8 196,16 200,12 L200,24 L0,24 Z"
+      fill={`url(#mg-${color.slice(1,5)})`} style={{ animation:'waveFlow 5s ease-in-out infinite' }}/>
+    <path d="M0,10 C20,3 40,18 60,10 C80,3 100,18 120,10 C140,3 160,18 180,10 C190,6 196,14 200,10"
+      fill="none" stroke="rgba(200,230,255,0.4)" strokeWidth="1"
+      style={{ animation:'waveFlow 5s 0.5s ease-in-out infinite' }}/>
+  </svg>
+);
+
+// ── Ocean BG (mobile) ─────────────────────────────────────
+const MobileOcean = () => (
+  <div style={{ position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none', zIndex:0 }}>
+    <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 140% 60% at 50% 100%, #0a1c48, #05091a)' }}/>
+    {[
+      { bottom:0, fill:'#1a3570', dur:12 },
+      { bottom:30, fill:'#142a5a', dur:17 },
+      { bottom:70, fill:'#0f2048', dur:22 },
+    ].map((w,i) => (
+      <div key={i} style={{ position:'absolute', bottom:w.bottom, left:'-50%', width:'200%', height:130, opacity:0.25 }}>
+        <svg viewBox="0 0 200 60" preserveAspectRatio="none" style={{ width:'100%', height:'100%' }}>
+          <path d={`M0,30 C25,${15+i*5} 50,${45-i*5} 75,30 C100,${15+i*5} 125,${45-i*5} 150,30 C175,${15+i*5} 190,${35-i*3} 200,30 L200,60 L0,60 Z`}
+            fill={w.fill} style={{ animation:`waveFlow ${w.dur}s ease-in-out infinite${i%2?' reverse':''}` }}/>
+        </svg>
+      </div>
+    ))}
+    {/* Wind streams */}
+    {[20,35,52,68,82].map((top,i) => (
+      <div key={i} style={{
+        position:'absolute', top:`${top}%`, left:0, right:0, height:1,
+        background:'linear-gradient(90deg, transparent, rgba(160,200,255,0.06), transparent)',
+        animation:`windDrift ${8+i*2}s ${i*1.5}s ease-in-out infinite`, opacity:0,
+      }}/>
+    ))}
+  </div>
+);
+
+// ── Drawer (mobile) ───────────────────────────────────────
+const MobileDrawer = ({ open, onClose, onCourse }) => (
+  <>
+    <div onClick={onClose} style={{
+      position:'absolute', inset:0, zIndex:100,
+      background:'rgba(0,5,20,0.6)', backdropFilter:'blur(2px)',
+      opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
+      transition:'opacity 0.3s',
+    }}/>
+    <div style={{
+      position:'absolute', top:0, left:0, bottom:0, width:'80%', maxWidth:260, zIndex:101,
+      background:'rgba(7,12,32,0.97)', backdropFilter:'blur(20px)',
+      borderRight:'1px solid rgba(80,130,255,0.12)',
+      transform: open ? 'translateX(0)' : 'translateX(-100%)',
+      transition:'transform 0.32s cubic-bezier(0.32,0,0.17,1)',
+      display:'flex', flexDirection:'column', overflow:'hidden',
+      boxShadow: open ? '6px 0 30px rgba(0,0,30,0.5)' : 'none',
+    }}>
+      {/* Header */}
+      <div style={{ padding:'52px 16px 14px', borderBottom:'1px solid rgba(80,130,255,0.1)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ fontSize:15, fontWeight:700, color:'#d8e8ff' }}>
+          <span style={{ color:'oklch(0.63 0.26 272)' }}>∿</span> Wisdom Wave
+        </span>
+        <div onClick={onClose} style={{ color:'rgba(180,210,255,0.5)', cursor:'pointer', fontSize:14 }}>✕</div>
+      </div>
+
+      <div style={{ flex:1, overflow:'auto', padding:'10px 0' }}>
+        {/* Courses */}
+        <div style={{ padding:'8px 16px 4px', fontSize:9, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'oklch(0.63 0.26 272)' }}>∿ Мои курсы</div>
+        {COURSES.map(c => (
+          <div key={c.id} onClick={() => { onCourse(c); onClose(); }} style={{
+            display:'flex', alignItems:'center', gap:8, padding:'8px 16px',
+            cursor:'pointer', transition:'background 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background='rgba(100,150,255,0.08)'}
+          onMouseLeave={e => e.currentTarget.style.background='transparent'}
+          >
+            <div style={{ width:28, height:28, borderRadius:7, flexShrink:0,
+              background:`linear-gradient(135deg, ${c.waveColor}, ${c.waveAccent}66)`,
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:11,
+            }}>{c.progress===100?'✓':c.progress>0?'▶':'○'}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:600, color:'#d8e8ff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title}</div>
+              {c.progress > 0 && (
+                <div style={{ height:2, background:'rgba(80,130,255,0.15)', borderRadius:1, marginTop:3 }}>
+                  <div style={{ height:'100%', width:`${c.progress}%`, background:c.waveAccent, borderRadius:1 }}/>
+                </div>
+              )}
+            </div>
+            {c.progress > 0 && c.progress < 100 && <span style={{ fontSize:10, fontWeight:700, color:c.waveAccent, flexShrink:0 }}>{c.progress}%</span>}
+          </div>
+        ))}
+
+        <div style={{ height:1, margin:'10px 16px', background:'rgba(80,130,255,0.1)' }}/>
+
+        {/* Community */}
+        <div style={{ padding:'8px 16px 4px', fontSize:9, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'oklch(0.63 0.26 272)' }}>∿ Сообщество</div>
+        {[
+          { icon:'💬', label:'Форум курсов', sub:'14 новых' },
+          { icon:'📣', label:'Объявления' },
+          { icon:'🏅', label:'Таблица лидеров', sub:'#24' },
+        ].map(item => (
+          <div key={item.label} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 16px', cursor:'pointer' }}
+            onMouseEnter={e=>e.currentTarget.style.background='rgba(100,150,255,0.08)'}
+            onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+          >
+            <div style={{ width:28, height:28, borderRadius:7, background:'rgba(100,150,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>{item.icon}</div>
+            <div>
+              <div style={{ fontSize:12, fontWeight:600, color:'#d8e8ff' }}>{item.label}</div>
+              {item.sub && <div style={{ fontSize:10, color:'rgba(180,210,255,0.45)' }}>{item.sub}</div>}
+            </div>
+          </div>
+        ))}
+
+        <div style={{ height:1, margin:'10px 16px', background:'rgba(80,130,255,0.1)' }}/>
+
+        {/* Mentor */}
+        <div style={{ padding:'10px 16px' }}>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'oklch(0.63 0.26 272)', marginBottom:10 }}>∿ Наставник</div>
+          <div style={{ background:'rgba(80,130,255,0.07)', border:'1px solid rgba(80,130,255,0.15)', borderRadius:10, padding:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+              <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg, oklch(0.63 0.26 272), oklch(0.55 0.22 290))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'#fff' }}>НС</div>
+              <div>
+                <div style={{ fontSize:12, fontWeight:700, color:'#d8e8ff' }}>Николай Степанов</div>
+                <div style={{ fontSize:9, color:'oklch(0.65 0.20 160)', fontWeight:600 }}>● Онлайн</div>
+              </div>
+            </div>
+            <button style={{ width:'100%', padding:'8px', borderRadius:7, border:'none', background:'linear-gradient(135deg, oklch(0.63 0.26 272), oklch(0.55 0.22 290))', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'Outfit, sans-serif' }}>
+              💬 Написать
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding:'10px 16px', borderTop:'1px solid rgba(80,130,255,0.1)', display:'flex', alignItems:'center', gap:8, paddingBottom:20 }}>
+        <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg, oklch(0.63 0.26 272), oklch(0.55 0.22 290))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff' }}>АП</div>
+        <div>
+          <div style={{ fontSize:11, fontWeight:600, color:'#d8e8ff' }}>Анна Петрова</div>
+          <div style={{ fontSize:9, color:'rgba(180,210,255,0.4)' }}>Pro план</div>
+        </div>
+      </div>
+    </div>
+  </>
+);
+
+// ── Home screen ───────────────────────────────────────────
+const MobileHome = ({ onCourse }) => {
+  const active = COURSES.filter(c => c.progress > 0 && c.progress < 100);
+  return (
+    <div style={{ padding:'10px 14px 80px', display:'flex', flexDirection:'column', gap:20 }}>
+      {/* Welcome */}
+      <div style={{ animation:'fadeUp 0.4s ease both' }}>
+        <div style={{ fontSize:10, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', color:'oklch(0.63 0.26 272)', marginBottom:6 }}>∿ Добрый день, Анна</div>
+        <div style={{ fontSize:26, fontWeight:700, lineHeight:1.15, letterSpacing:'-0.02em', color:'#e0eeff', textShadow:'0 0 40px oklch(0.63 0.26 272 / 0.2)' }}>
+          Каждый урок —<br/><span style={{ fontWeight:300, fontStyle:'italic', color:'oklch(0.63 0.26 272)' }}>новая волна</span>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display:'flex', gap:10, animation:'fadeUp 0.4s 0.08s ease both' }}>
+        {[
+          { v:'127', l:'часов', c:'oklch(0.63 0.26 272)' },
+          { v:'84', l:'уроков', c:'oklch(0.65 0.20 160)' },
+          { v:'12×', l:'дней', c:'oklch(0.76 0.14 76)' },
+        ].map(s => (
+          <div key={s.l} style={{ flex:1, background:'rgba(10,20,50,0.7)', border:'1px solid rgba(80,130,255,0.12)', borderRadius:12, padding:'10px', textAlign:'center' }}>
+            <div style={{ fontSize:22, fontWeight:700, color:s.c, letterSpacing:'-0.02em', textShadow:`0 0 16px ${s.c}66` }}>{s.v}</div>
+            <div style={{ fontSize:9, color:'rgba(180,210,255,0.5)', marginTop:2 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Active courses */}
+      {active.length > 0 && (
+        <div style={{ animation:'fadeUp 0.4s 0.14s ease both' }}>
+          <div style={{ fontSize:13, fontWeight:700, color:'#d8e8ff', marginBottom:10 }}>Продолжить погружение</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {active.map(c => <MobileCard key={c.id} course={c} onClick={onCourse}/>)}
+          </div>
+        </div>
+      )}
+
+      {/* All courses */}
+      <div style={{ animation:'fadeUp 0.4s 0.2s ease both' }}>
+        <div style={{ fontSize:13, fontWeight:700, color:'#d8e8ff', marginBottom:10 }}>Все курсы</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {COURSES.map(c => <MobileCard key={c.id} course={c} onClick={onCourse}/>)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Mobile Card ───────────────────────────────────────────
+const MobileCard = ({ course, onClick }) => {
+  const [hov, setHov] = useState(false);
+  return (
+    <div onClick={() => onClick(course)}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        borderRadius:14, overflow:'hidden', cursor:'pointer',
+        border:`1px solid ${hov ? 'rgba(120,170,255,0.2)' : 'rgba(80,130,255,0.1)'}`,
+        transform: hov ? 'scale(1.01)' : 'none',
+        transition:'all 0.25s ease',
+        boxShadow: hov ? '0 8px 30px rgba(0,0,30,0.5)' : '0 2px 10px rgba(0,0,20,0.3)',
+      }}>
+      {/* Crest */}
+      <div style={{ background:`linear-gradient(160deg, ${course.waveColor}, #080f28)`, padding:'12px 14px 0', position:'relative', overflow:'hidden' }}>
+        <div style={{ position:'absolute', inset:0, background:`radial-gradient(ellipse 60% 80% at 20% 50%, ${course.waveAccent}20, transparent)` }}/>
+        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8, position:'relative' }}>
+          <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:course.waveAccent, background:`${course.waveAccent}18`, border:`1px solid ${course.waveAccent}35`, padding:'2px 7px', borderRadius:10 }}>{course.category}</span>
+          {course.progress === 100 && <span style={{ fontSize:9, fontWeight:700, color:'oklch(0.76 0.14 76)' }}>✦ Завершён</span>}
+        </div>
+        <div style={{ fontSize:15, fontWeight:700, color:'#e8f2ff', lineHeight:1.2, marginBottom:10, position:'relative' }}>{course.title}</div>
+        <MiniWave color={course.waveColor} accent={course.waveAccent}/>
+      </div>
+      {/* Body */}
+      <div style={{ background:'rgba(8,14,36,0.92)', padding:'10px 14px 12px' }}>
+        <div style={{ display:'flex', gap:12, marginBottom: course.progress > 0 ? 10 : 0 }}>
+          <span style={{ fontSize:10, color:'rgba(180,210,255,0.5)' }}>⏱ {course.duration}</span>
+          <span style={{ fontSize:10, color:'rgba(180,210,255,0.5)' }}>📖 {course.lessons} ур.</span>
+          <span style={{ fontSize:10, color:'oklch(0.76 0.14 76)' }}>★ {course.rating}</span>
+        </div>
+        {course.progress > 0 && (
+          <div>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+              <span style={{ fontSize:9, color:'rgba(180,210,255,0.4)' }}>Прогресс</span>
+              <span style={{ fontSize:9, fontWeight:700, color:course.waveAccent }}>{course.progress}%</span>
+            </div>
+            <div style={{ height:2, background:'rgba(100,140,255,0.1)', borderRadius:1, overflow:'hidden' }}>
+              <div style={{ height:'100%', width:`${course.progress}%`, background:course.waveAccent, borderRadius:1, boxShadow:`0 0 6px ${course.waveAccent}66` }}/>
+            </div>
+          </div>
+        )}
+        {course.progress === 0 && <div style={{ fontSize:10, color:'rgba(100,140,255,0.3)', textAlign:'center', padding:'4px', border:'1px dashed rgba(100,140,255,0.15)', borderRadius:6 }}>погрузиться ↓</div>}
+      </div>
+    </div>
+  );
+};
+
+// ── Course detail (mobile) ────────────────────────────────
+const MobileCourse = ({ course, onBack, onLesson }) => {
+  const active = course.chapters.find(c => c.active) || course.chapters[0];
+  return (
+    <div style={{ padding:'10px 14px 80px', display:'flex', flexDirection:'column', gap:14 }}>
+      <div onClick={onBack} style={{ display:'flex', alignItems:'center', gap:6, color:'rgba(180,210,255,0.5)', fontSize:12, cursor:'pointer', marginBottom:4 }}>
+        ← Назад
+      </div>
+      {/* Hero */}
+      <div style={{ background:`linear-gradient(160deg, ${course.waveColor}, #060e22)`, borderRadius:14, overflow:'hidden', border:`1px solid ${course.waveAccent}20` }}>
+        <div style={{ padding:'16px 16px 0', position:'relative' }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:course.waveAccent, marginBottom:8 }}>{course.category}</div>
+          <div style={{ fontSize:22, fontWeight:700, color:'#e0eeff', lineHeight:1.15, marginBottom:6, letterSpacing:'-0.01em' }}>{course.title}</div>
+          <div style={{ display:'flex', gap:14, marginBottom:14 }}>
+            <span style={{ fontSize:10, color:'rgba(180,210,255,0.6)' }}>⏱ {course.duration}</span>
+            <span style={{ fontSize:10, color:'rgba(180,210,255,0.6)' }}>📖 {course.lessons}</span>
+            <span style={{ fontSize:10, color:'oklch(0.76 0.14 76)' }}>★ {course.rating}</span>
+          </div>
+        </div>
+        <MiniWave color={course.waveColor} accent={course.waveAccent}/>
+      </div>
+
+      {/* Progress */}
+      {course.progress > 0 && (
+        <div style={{ background:'rgba(8,14,36,0.8)', borderRadius:12, padding:'12px 14px', border:`1px solid ${course.waveAccent}18` }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+            <span style={{ fontSize:12, fontWeight:600 }}>Прогресс волны</span>
+            <span style={{ fontSize:12, fontWeight:700, color:course.waveAccent }}>{course.progress}%</span>
+          </div>
+          <div style={{ height:4, background:'rgba(80,130,255,0.1)', borderRadius:2, overflow:'hidden' }}>
+            <div style={{ height:'100%', width:`${course.progress}%`, background:course.waveAccent, borderRadius:2, boxShadow:`0 0 8px ${course.waveAccent}44` }}/>
+          </div>
+        </div>
+      )}
+
+      {/* Start button */}
+      {active && (
+        <button onClick={() => onLesson(course, active)} style={{
+          width:'100%', padding:'12px', borderRadius:10, border:'none', cursor:'pointer',
+          background:`linear-gradient(135deg, ${course.waveAccent}cc, oklch(0.55 0.22 290))`,
+          color:'#fff', fontSize:13, fontWeight:700, fontFamily:'Outfit, sans-serif',
+          display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+          boxShadow:`0 6px 20px ${course.waveAccent}44`,
+        }}>
+          ▶ {course.progress > 0 ? 'Продолжить погружение' : 'Начать погружение'}
+        </button>
+      )}
+
+      {/* Chapters */}
+      <div>
+        <div style={{ fontSize:12, fontWeight:700, color:'#d8e8ff', marginBottom:10 }}>Программа</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {course.chapters.map((ch, i) => (
+            <div key={ch.id} onClick={() => onLesson(course, ch)} style={{
+              display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
+              borderRadius:10, cursor:'pointer',
+              background: ch.active ? `${course.waveAccent}14` : 'rgba(8,14,36,0.7)',
+              border:`1px solid ${ch.active ? course.waveAccent+'30' : 'rgba(80,130,255,0.08)'}`,
+            }}>
+              <div style={{
+                width:24, height:24, borderRadius:'50%', flexShrink:0,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                background: ch.done ? 'rgba(200,160,80,0.12)' : `${course.waveAccent}14`,
+                fontSize:10, color: ch.done ? 'oklch(0.76 0.14 76)' : ch.active ? course.waveAccent : 'rgba(120,160,220,0.4)',
+                border:`1px solid ${ch.done ? 'rgba(200,160,80,0.3)' : ch.active ? course.waveAccent+'35' : 'transparent'}`,
+              }}>{ch.done ? '✓' : i+1}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, fontWeight: ch.active ? 600 : 400, color: ch.active ? '#d8e8ff' : 'rgba(180,210,255,0.55)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ch.title}</div>
+                <div style={{ fontSize:9, color:'rgba(120,160,220,0.35)', marginTop:1 }}>{ch.duration}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Lesson (mobile) ───────────────────────────────────────
+const MobileLesson = ({ course, chapter, onBack }) => {
+  const videoRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const pct = duration > 0 ? (currentTime/duration)*100 : 0;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+      {/* Video */}
+      <div style={{ background:'#000', position:'relative', aspectRatio:'16/9', flexShrink:0, cursor:'pointer' }}
+        onClick={() => { const v=videoRef.current; if(v){playing?v.pause():v.play();} }}>
+        <video ref={videoRef} src="uploads/02177541912450300000000000000000000ffffac15a1a613d058.mp4"
+          style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }}
+          onTimeUpdate={e=>setCurrentTime(e.target.currentTime)}
+          onLoadedMetadata={e=>setDuration(e.target.duration)}
+          onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}/>
+        {/* Controls */}
+        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,5,20,0.85) 0%, transparent 50%)', display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:'0 12px 10px' }}>
+          {/* Wave progress */}
+          <div style={{ marginBottom:8 }}>
+            <svg viewBox="0 0 300 8" preserveAspectRatio="none" style={{ width:'100%', height:8, display:'block' }}
+              onClick={e=>{ e.stopPropagation(); const r=e.currentTarget.getBoundingClientRect(); if(videoRef.current) videoRef.current.currentTime=((e.clientX-r.left)/r.width)*duration; }}>
+              <path d="M0,4 C25,1 50,7 75,4 C100,1 125,7 150,4 C175,1 200,7 225,4 C250,1 275,7 300,4"
+                fill="none" stroke="rgba(100,150,255,0.2)" strokeWidth="2"/>
+              <clipPath id="mp-clip"><rect x="0" y="0" width={`${pct}%`} height="8"/></clipPath>
+              <path d="M0,4 C25,1 50,7 75,4 C100,1 125,7 150,4 C175,1 200,7 225,4 C250,1 275,7 300,4"
+                fill="none" stroke={course.waveAccent} strokeWidth="2.5" clipPath="url(#mp-clip)"
+                style={{ filter:`drop-shadow(0 0 3px ${course.waveAccent})` }}/>
+              <circle cx={`${pct}%`} cy="4" r="4" fill={course.waveAccent}/>
+            </svg>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>{ const v=videoRef.current; if(v){playing?v.pause():v.play();} }} style={{
+              background:`${course.waveAccent}25`, border:`1px solid ${course.waveAccent}40`,
+              borderRadius:'50%', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center',
+              color:'#fff', cursor:'pointer', fontSize:12,
+            }}>{playing?'⏸':'▶'}</button>
+            <span style={{ fontSize:10, color:'rgba(180,210,255,0.8)', fontVariantNumeric:'tabular-nums' }}>{fmt(currentTime)} / {fmt(duration)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Meta + chapters */}
+      <div style={{ flex:1, overflow:'auto', padding:'12px 14px 60px' }}>
+        <div onClick={onBack} style={{ fontSize:11, color:'rgba(180,210,255,0.45)', cursor:'pointer', marginBottom:10 }}>← Курс</div>
+        <div style={{ fontSize:16, fontWeight:700, color:'#d8e8ff', marginBottom:3 }}>{chapter.title}</div>
+        <div style={{ fontSize:11, color:'rgba(180,210,255,0.4)', marginBottom:14 }}>{course.title}</div>
+        <div style={{ fontSize:11, fontWeight:700, color:'rgba(180,210,255,0.6)', marginBottom:8 }}>Содержание</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+          {course.chapters.map((ch,i) => (
+            <div key={ch.id} style={{
+              display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8,
+              background: ch.id===chapter.id ? `${course.waveAccent}14` : 'rgba(8,14,36,0.6)',
+              border:`1px solid ${ch.id===chapter.id ? course.waveAccent+'28' : 'rgba(80,130,255,0.08)'}`,
+            }}>
+              <div style={{ width:20, height:20, borderRadius:'50%', background:'rgba(80,130,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color: ch.done?'oklch(0.76 0.14 76)':'rgba(120,160,220,0.4)', flexShrink:0 }}>{ch.done?'✓':i+1}</div>
+              <div style={{ fontSize:11, color: ch.id===chapter.id?'#d8e8ff':'rgba(180,210,255,0.5)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ch.title}</div>
+              <div style={{ fontSize:9, color:'rgba(120,160,220,0.3)', flexShrink:0 }}>{ch.duration}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Bottom nav ────────────────────────────────────────────
+const BottomNav = ({ screen, setScreen }) => {
+  const tabs = [
+    { id:'home', icon:'∿', label:'Главная' },
+    { id:'search', icon:'◎', label:'Поиск' },
+    { id:'progress', icon:'◈', label:'Прогресс' },
+    { id:'profile', icon:'◉', label:'Профиль' },
+  ];
+  return (
+    <div style={{
+      position:'absolute', bottom:0, left:0, right:0, zIndex:50,
+      background:'rgba(5,9,26,0.9)', backdropFilter:'blur(16px)',
+      borderTop:'1px solid rgba(80,130,255,0.1)',
+      display:'flex', padding:'8px 0 24px',
+    }}>
+      {tabs.map(t => (
+        <div key={t.id} onClick={() => setScreen(t.id)} style={{
+          flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, cursor:'pointer',
+        }}>
+          <div style={{ fontSize:20, color: screen===t.id ? 'oklch(0.63 0.26 272)' : 'rgba(180,210,255,0.3)', lineHeight:1, filter: screen===t.id ? 'drop-shadow(0 0 6px oklch(0.63 0.26 272 / 0.6))' : 'none', transition:'all 0.2s' }}>{t.icon}</div>
+          <div style={{ fontSize:9, fontWeight:600, color: screen===t.id ? 'oklch(0.63 0.26 272)' : 'rgba(180,210,255,0.3)', transition:'color 0.2s' }}>{t.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Mobile App ────────────────────────────────────────────
+const MobileApp = () => {
+  const [screen, setScreen] = useState('home');
+  const [course, setCourse] = useState(null);
+  const [chapter, setChapter] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const openCourse = c => { setCourse(c); setScreen('course'); };
+  const openLesson = (c, ch) => { setCourse(c); setChapter(ch); setScreen('lesson'); };
+
+  return (
+    <div style={{ width:'100%', height:'100%', background:'#05091a', position:'relative', overflow:'hidden', fontFamily:'Outfit, sans-serif', color:'#d8e8ff' }}>
+      <MobileOcean/>
+
+      {/* Wave header */}
+      <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:20 }}>
+        <div style={{ background:'rgba(7,12,34,0.75)', backdropFilter:'blur(12px)', padding:'52px 16px 0', position:'relative' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <button onClick={() => setDrawerOpen(true)} style={{
+              background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)',
+              borderRadius:8, width:34, height:30, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
+              cursor:'pointer',
+            }}>
+              {[18,14,18].map((w,i) => <div key={i} style={{ height:1.5, width:w, background:'rgba(180,210,255,0.8)', borderRadius:2 }}/>)}
+            </button>
+            <div style={{ fontSize:17, fontWeight:700, letterSpacing:'-0.02em' }}>
+              <span style={{ color:'oklch(0.63 0.26 272)' }}>∿</span> Wisdom<span style={{ fontWeight:300, color:'oklch(0.63 0.26 272)' }}>Wave</span>
+            </div>
+            <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg, oklch(0.63 0.26 272), oklch(0.55 0.22 290))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff' }}>АП</div>
+          </div>
+          {/* Mini wave under header */}
+          <svg viewBox="0 0 400 18" preserveAspectRatio="none" style={{ display:'block', width:'100%', height:18, marginTop:0 }}>
+            <path d="M0,9 C40,3 80,15 120,9 C160,3 200,15 240,9 C280,3 320,15 360,9 C380,6 392,13 400,9 L400,18 L0,18 Z"
+              fill="rgba(7,12,34,0.75)" style={{ animation:'waveFlow 6s ease-in-out infinite' }}/>
+            <path d="M0,7 C40,2 80,13 120,7 C160,2 200,13 240,7 C280,2 320,13 360,7 C380,5 392,11 400,7"
+              fill="none" stroke="rgba(130,180,255,0.2)" strokeWidth="1" style={{ animation:'waveFlow 6s 0.5s ease-in-out infinite' }}/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ position:'absolute', inset:0, overflow:'auto', paddingTop: screen==='lesson' ? 0 : 108, zIndex:1 }}>
+        {screen==='home' && <MobileHome onCourse={openCourse}/>}
+        {screen==='course' && course && <MobileCourse course={course} onBack={()=>setScreen('home')} onLesson={openLesson}/>}
+        {screen==='lesson' && course && chapter && <MobileLesson course={course} chapter={chapter} onBack={()=>setScreen('course')}/>}
+        {(screen==='search'||screen==='progress'||screen==='profile') && (
+          <div style={{ padding:'20px 14px', textAlign:'center', color:'rgba(180,210,255,0.4)', fontSize:14 }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>{screen==='search'?'◎':screen==='progress'?'◈':'◉'}</div>
+            <div>{screen==='search'?'Поиск курсов':screen==='progress'?'Мой прогресс':'Профиль'}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Drawer */}
+      <MobileDrawer open={drawerOpen} onClose={()=>setDrawerOpen(false)} onCourse={c=>{ openCourse(c); }}/>
+
+      {/* Bottom nav */}
+      {screen!=='lesson' && <BottomNav screen={screen} setScreen={s=>{ setScreen(s); if(s==='home') setCourse(null); }}/>}
+    </div>
+  );
+};
+
+// ── Root: two phones side by side ─────────────────────────
+const Root = () => (
+  <div style={{ display:'flex', gap:60, alignItems:'center', flexWrap:'wrap', justifyContent:'center' }}>
+    {/* Dark theme */}
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
+      <div style={{ fontSize:12, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(180,210,255,0.4)' }}>Тёмная тема</div>
+      <IOSDevice width={390} height={844} dark={true}>
+        <MobileApp/>
+      </IOSDevice>
+    </div>
+    {/* Light theme (static preview) */}
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
+      <div style={{ fontSize:12, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(180,210,255,0.4)' }}>Светлая тема</div>
+      <IOSDevice width={390} height={844} dark={false}>
+        <div style={{ width:'100%', height:'100%', background:'#d8eeff', position:'relative', overflow:'hidden', fontFamily:'Outfit, sans-serif', color:'#0a1e40' }}>
+          {/* Light ocean bg */}
+          <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 140% 60% at 50% 100%, #88c8f8, #d8eeff)' }}/>
+          {[
+            { bottom:0, fill:'#5aaae8', dur:12 },
+            { bottom:25, fill:'#72b8f4', dur:17 },
+            { bottom:60, fill:'#8cc8ff', dur:22 },
+          ].map((w,i) => (
+            <div key={i} style={{ position:'absolute', bottom:w.bottom, left:'-50%', width:'200%', height:120, opacity:0.3 }}>
+              <svg viewBox="0 0 200 60" preserveAspectRatio="none" style={{ width:'100%', height:'100%' }}>
+                <path d={`M0,30 C25,${15+i*5} 50,${45-i*5} 75,30 C100,${15+i*5} 125,${45-i*5} 150,30 C175,${15+i*5} 190,${35-i*3} 200,30 L200,60 L0,60 Z`}
+                  fill={w.fill} style={{ animation:`waveFlow ${w.dur}s ease-in-out infinite${i%2?' reverse':''}` }}/>
+              </svg>
+            </div>
+          ))}
+          {/* Light header */}
+          <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:20 }}>
+            <div style={{ background:'rgba(45,110,200,0.85)', backdropFilter:'blur(12px)', padding:'52px 16px 0', position:'relative' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                <div style={{ width:34, height:30, background:'rgba(255,255,255,0.25)', border:'1px solid rgba(255,255,255,0.4)', borderRadius:8, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3 }}>
+                  {[18,14,18].map((w,i) => <div key={i} style={{ height:1.5, width:w, background:'rgba(255,255,255,0.9)', borderRadius:2 }}/>)}
+                </div>
+                <div style={{ fontSize:17, fontWeight:700, letterSpacing:'-0.02em', color:'#fff' }}>
+                  ∿ Wisdom<span style={{ fontWeight:300, color:'rgba(255,255,255,0.8)' }}>Wave</span>
+                </div>
+                <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg, #6060f0, #4040d0)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff' }}>АП</div>
+              </div>
+              <svg viewBox="0 0 400 18" preserveAspectRatio="none" style={{ display:'block', width:'100%', height:18 }}>
+                <path d="M0,9 C40,3 80,15 120,9 C160,3 200,15 240,9 C280,3 320,15 360,9 C380,6 392,13 400,9 L400,18 L0,18 Z" fill="rgba(45,110,200,0.85)"/>
+                <path d="M0,7 C40,2 80,13 120,7 C160,2 200,13 240,7 C280,2 320,13 360,7 C380,5 392,11 400,7" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1"/>
+              </svg>
+            </div>
+          </div>
+          {/* Content preview */}
+          <div style={{ position:'absolute', top:108, left:14, right:14, zIndex:1 }}>
+            <div style={{ fontSize:10, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', color:'#3060c0', marginBottom:6 }}>∿ Добрый день, Анна</div>
+            <div style={{ fontSize:24, fontWeight:700, lineHeight:1.15, color:'#0a1e40', marginBottom:16 }}>
+              Каждый урок —<br/><span style={{ fontWeight:300, fontStyle:'italic', color:'#3060c0' }}>новая волна</span>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+              {[{v:'127',l:'часов',c:'#3060c0'},{v:'84',l:'уроков',c:'#1a8a60'},{v:'12×',l:'дней',c:'#c08020'}].map(s=>(
+                <div key={s.l} style={{ flex:1, background:'rgba(255,255,255,0.6)', border:'1px solid rgba(60,120,220,0.2)', borderRadius:10, padding:'8px', textAlign:'center' }}>
+                  <div style={{ fontSize:20, fontWeight:700, color:s.c }}>{s.v}</div>
+                  <div style={{ fontSize:8, color:'rgba(20,60,130,0.5)', marginTop:1 }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+            {/* One card preview */}
+            <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid rgba(60,120,220,0.15)', boxShadow:'0 4px 16px rgba(0,60,180,0.1)' }}>
+              <div style={{ background:'linear-gradient(160deg, #1a1060, #0d0828)', padding:'10px 12px 0' }}>
+                <span style={{ fontSize:8, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'oklch(0.63 0.26 272)', background:'oklch(0.63 0.26 272 / 0.15)', border:'1px solid oklch(0.63 0.26 272 / 0.3)', padding:'2px 6px', borderRadius:8 }}>Дизайн</span>
+                <div style={{ fontSize:13, fontWeight:700, color:'#e8f2ff', marginTop:6, marginBottom:8 }}>Дизайн интерфейсов</div>
+                <svg viewBox="0 0 200 18" preserveAspectRatio="none" style={{ display:'block', width:'100%', height:18 }}>
+                  <path d="M0,9 C25,3 50,15 75,9 C100,3 125,15 150,9 C175,3 190,12 200,9 L200,18 L0,18 Z" fill="#1a1060"/>
+                  <path d="M0,7 C25,2 50,13 75,7 C100,2 125,13 150,7 C175,2 190,11 200,7" fill="none" stroke="rgba(180,160,255,0.5)" strokeWidth="1"/>
+                </svg>
+              </div>
+              <div style={{ background:'rgba(255,255,255,0.85)', padding:'8px 12px 10px' }}>
+                <div style={{ height:3, background:'rgba(60,120,220,0.1)', borderRadius:2 }}>
+                  <div style={{ height:'100%', width:'68%', background:'oklch(0.63 0.26 272)', borderRadius:2 }}/>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', marginTop:4 }}>
+                  <span style={{ fontSize:9, color:'rgba(20,60,130,0.5)' }}>Прогресс</span>
+                  <span style={{ fontSize:9, fontWeight:700, color:'oklch(0.52 0.24 272)' }}>68%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Bottom nav light */}
+          <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(220,240,255,0.9)', backdropFilter:'blur(12px)', borderTop:'1px solid rgba(60,120,220,0.12)', display:'flex', padding:'8px 0 24px', zIndex:20 }}>
+            {['∿','◎','◈','◉'].map((icon,i) => (
+              <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+                <div style={{ fontSize:18, color: i===0 ? '#3060c0' : 'rgba(20,60,130,0.25)', lineHeight:1 }}>{icon}</div>
+                <div style={{ fontSize:8, fontWeight:600, color: i===0 ? '#3060c0' : 'rgba(20,60,130,0.3)' }}>{['Главная','Поиск','Прогресс','Профиль'][i]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </IOSDevice>
+    </div>
+  </div>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
+</script>
+</body>
+</html>
