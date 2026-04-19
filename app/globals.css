@@ -57,3 +57,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Wave design system */
+@layer base {
+  :root {
+    --ocean1: #081228;
+    --ocean2: #0c1a38;
+    --foam: rgba(180,210,255,0.92);
+    --foam-light: rgba(210,230,255,0.6);
+    --card-body: rgba(10,22,52,0.82);
+    --card-border: rgba(100,160,255,0.13);
+    --wave-accent: oklch(0.63 0.26 272);
+    --wave-accent-glow: oklch(0.63 0.26 272 / 0.18);
+    --wave-gold: oklch(0.72 0.14 76);
+    --text-foam: #d8e8ff;
+    --text-muted-foam: rgba(180,210,255,0.5);
+  }
+
+  .light {
+    --ocean1: #c2e0f7;
+    --ocean2: #aed4f2;
+    --foam: rgba(40,100,200,0.7);
+    --foam-light: rgba(60,130,220,0.35);
+    --card-body: rgba(255,255,255,0.88);
+    --card-border: rgba(60,130,220,0.18);
+    --wave-accent: oklch(0.52 0.24 272);
+    --wave-gold: oklch(0.60 0.14 60);
+    --text-foam: #0f2040;
+    --text-muted-foam: rgba(20,60,130,0.55);
+  }
+}
