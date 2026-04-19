@@ -3,6 +3,37 @@ import Link from 'next/link'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/client'
 import { BookOpen, ShoppingBag, CreditCard, ArrowRight } from 'lucide-react'
+import { WaveCard } from '@/components/layout/WaveCard'
+
+function WaveProgress({ value, accent }: { value: number; accent?: string }) {
+  return (
+    <div className="relative mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+      <div
+        className="h-full rounded-full transition-all duration-500"
+        style={{
+          width: `${value}%`,
+          background: accent
+            ? `linear-gradient(90deg, ${accent}99, ${accent})`
+            : 'linear-gradient(90deg, var(--wave-accent)99, var(--wave-accent))',
+        }}
+      />
+      <svg
+        viewBox="0 0 100 12"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full opacity-30"
+        style={{ clipPath: `inset(0 ${100 - value}% 0 0)` }}
+        aria-hidden="true"
+      >
+        <path
+          d="M0,6 C10,2 20,10 30,6 C40,2 50,10 60,6 C70,2 80,10 90,6 C95,4 98,8 100,6"
+          fill="none"
+          stroke="white"
+          strokeWidth="2"
+        />
+      </svg>
+    </div>
+  )
+}
 
 export default async function StudentDashboardPage() {
   const session = await getSession()
@@ -66,27 +97,24 @@ export default async function StudentDashboardPage() {
   ]
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Добро пожаловать, {session.name}
+    <div className="space-y-8 relative z-10">
+      <div className="mb-8 animate-fade-up relative z-10">
+        <h1 className="text-2xl font-bold text-[var(--text-foam)]">
+          Привет ∿
         </h1>
-        <p className="mt-1 text-muted-foreground">Ваш личный кабинет</p>
+        <p className="text-sm text-[var(--text-muted-foam)]">Продолжай обучение</p>
       </div>
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map(({ label, value, icon: Icon }) => (
-          <div
-            key={label}
-            className="rounded-lg border border-border bg-card p-5"
-          >
+          <WaveCard key={label} className="p-5 relative z-10">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{label}</p>
               <Icon className="h-4 w-4 text-muted-foreground" />
             </div>
             <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
-          </div>
+          </WaveCard>
         ))}
       </div>
 
@@ -95,7 +123,7 @@ export default async function StudentDashboardPage() {
         <h2 className="mb-4 text-lg font-semibold text-foreground">Продолжить обучение</h2>
 
         {recentPurchases.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center">
+          <WaveCard className="p-8 text-center relative z-10 border-dashed">
             <BookOpen className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
             <p className="mb-4 text-muted-foreground">У вас пока нет купленных курсов</p>
             <Link
@@ -105,16 +133,13 @@ export default async function StudentDashboardPage() {
               Перейти в каталог
               <ArrowRight className="h-4 w-4" />
             </Link>
-          </div>
+          </WaveCard>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {recentPurchases.map((purchase) => {
               const progress = progressMap.get(purchase.product_id) ?? 0
               return (
-                <div
-                  key={purchase.id}
-                  className="rounded-lg border border-border bg-card overflow-hidden"
-                >
+                <WaveCard key={purchase.id} className="overflow-hidden relative z-10">
                   {purchase.product.thumbnail_url ? (
                     <img
                       src={purchase.product.thumbnail_url}
@@ -135,12 +160,7 @@ export default async function StudentDashboardPage() {
                         <span>Прогресс</span>
                         <span>{progress}%</span>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-muted">
-                        <div
-                          className="h-1.5 rounded-full bg-primary transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
+                      <WaveProgress value={progress} />
                     </div>
                     <Link
                       href={`/catalog/${purchase.product_id}`}
@@ -149,7 +169,7 @@ export default async function StudentDashboardPage() {
                       Продолжить
                     </Link>
                   </div>
-                </div>
+                </WaveCard>
               )
             })}
           </div>
