@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
@@ -8,14 +8,18 @@ import { OrganizationSchema } from '@/components/seo/SchemaOrg'
 import { getSiteSettings } from '@/lib/settings/site-settings'
 import '@/app/globals.css'
 
-const inter = Inter({ subsets: ['latin', 'cyrillic'] })
+const outfit = Outfit({
+  subsets: ['latin'],
+  weight: ['200', '300', '400', '500', '600', '700'],
+  variable: '--font-outfit',
+})
 
 export const metadata: Metadata = {
   title: {
-    default: 'EduPlatform — Йога, массаж, фитнес онлайн',
-    template: '%s | EduPlatform',
+    default: 'WisdomWave — Образовательная платформа',
+    template: '%s | WisdomWave',
   },
-  description: 'Образовательная платформа: видеоуроки, курсы, трансляции и физические товары',
+  description: 'WisdomWave — образовательная платформа: йога, массаж, фитнес, творчество онлайн',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
 }
 
@@ -42,7 +46,7 @@ export default async function RootLayout({
           socials={orgSocials.length ? orgSocials : undefined}
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${outfit.variable} font-sans`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider
             attribute="class"
