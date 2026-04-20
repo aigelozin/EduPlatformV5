@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { db } from '@/lib/db/client'
 import { WaveCard } from '@/components/layout/WaveCard'
+import { MobileWaveCard, WAVE_PALETTE } from '@/components/layout/MobileWaveCard'
 
 export const metadata: Metadata = {
   title: 'Каталог курсов',
@@ -117,68 +118,89 @@ export default async function CatalogPage({ searchParams }: PageProps) {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <WaveCard
-              key={product.id}
-              waveColor="#0c1a38"
-              waveAccent="oklch(0.63 0.26 272)"
-              className="p-0 overflow-hidden"
-              as="article"
-            >
-              <Link
-                href={`/catalog/${product.slug}`}
-                className="group flex flex-col h-full hover:no-underline"
+        <>
+          {/* Mobile: wave crest cards */}
+          <div className="flex flex-col gap-4 sm:hidden">
+            {products.map((product) => {
+              const palette = WAVE_PALETTE[product.category?.slug ?? ''] ?? WAVE_PALETTE.massage
+              return (
+                <MobileWaveCard
+                  key={product.id}
+                  href={`/catalog/${product.slug}`}
+                  title={product.title_ru}
+                  category={product.category?.name_ru}
+                  rating={product._count.reviews > 0 ? 4.8 : undefined}
+                  waveColor={palette.color}
+                  waveAccent={palette.accent}
+                />
+              )
+            })}
+          </div>
+
+          {/* Desktop: standard grid */}
+          <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <WaveCard
+                key={product.id}
+                waveColor="#0c1a38"
+                waveAccent="oklch(0.63 0.26 272)"
+                className="p-0 overflow-hidden"
+                as="article"
               >
-                <div className="aspect-video bg-muted overflow-hidden">
-                  {product.thumbnail_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.thumbnail_url}
-                      alt={product.title_ru}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                      Нет обложки
-                    </div>
-                  )}
-                </div>
-                <div className="p-4 flex-1 flex flex-col">
-                  {product.category && (
-                    <span className="text-xs text-muted-foreground">{product.category.name_ru}</span>
-                  )}
-                  <h3 className="font-semibold mt-1 line-clamp-2 group-hover:text-primary transition-colors">
-                    {product.title_ru}
-                  </h3>
-                  <div className="flex items-center justify-between mt-3 mt-auto">
-                    <div>
-                      {product.sale_price ? (
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-primary">
-                            {(product.sale_price / 100).toLocaleString('ru-RU')} ₽
-                          </span>
-                          <span className="text-xs text-muted-foreground line-through">
+                <Link
+                  href={`/catalog/${product.slug}`}
+                  className="group flex flex-col h-full hover:no-underline"
+                >
+                  <div className="aspect-video bg-muted overflow-hidden">
+                    {product.thumbnail_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.thumbnail_url}
+                        alt={product.title_ru}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                        Нет обложки
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    {product.category && (
+                      <span className="text-xs text-muted-foreground">{product.category.name_ru}</span>
+                    )}
+                    <h3 className="font-semibold mt-1 line-clamp-2 group-hover:text-primary transition-colors">
+                      {product.title_ru}
+                    </h3>
+                    <div className="flex items-center justify-between mt-3 mt-auto">
+                      <div>
+                        {product.sale_price ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-primary">
+                              {(product.sale_price / 100).toLocaleString('ru-RU')} ₽
+                            </span>
+                            <span className="text-xs text-muted-foreground line-through">
+                              {(product.price / 100).toLocaleString('ru-RU')} ₽
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-bold">
                             {(product.price / 100).toLocaleString('ru-RU')} ₽
                           </span>
-                        </div>
-                      ) : (
-                        <span className="font-bold">
-                          {(product.price / 100).toLocaleString('ru-RU')} ₽
+                        )}
+                      </div>
+                      {product._count.reviews > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          ★ {product._count.reviews}
                         </span>
                       )}
                     </div>
-                    {product._count.reviews > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        ★ {product._count.reviews}
-                      </span>
-                    )}
                   </div>
-                </div>
-              </Link>
-            </WaveCard>
-          ))}
-        </div>
+                </Link>
+              </WaveCard>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Пагинация */}

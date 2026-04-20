@@ -92,6 +92,23 @@ export function Header() {
             </button>
           </div>
         </div>
+
+        {/* Mobile wave border — visible only on small screens */}
+        <div className="relative h-5 overflow-hidden md:hidden" aria-hidden="true">
+          <svg viewBox="0 0 400 18" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+            <path
+              d="M0,9 C40,3 80,15 120,9 C160,3 200,15 240,9 C280,3 320,15 360,9 C380,6 392,13 400,9 L400,18 L0,18 Z"
+              fill={dark ? 'rgba(8,18,40,0.85)' : 'rgba(200,230,248,0.85)'}
+              className="animate-wave-1"
+            />
+            <path
+              d="M0,7 C40,2 80,13 120,7 C160,2 200,13 240,7 C280,2 320,13 360,7 C380,5 392,11 400,7"
+              fill="none"
+              stroke="rgba(130,180,255,0.18)"
+              strokeWidth="1"
+            />
+          </svg>
+        </div>
       </header>
     </>
   )

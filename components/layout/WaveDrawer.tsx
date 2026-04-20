@@ -141,6 +141,37 @@ export function WaveDrawer({ open, onClose, courses = [] }: WaveDrawerProps) {
               </Link>
             ))}
           </section>
+
+          <div className="mx-5 my-2 h-px bg-[var(--card-border)]" />
+
+          {/* Mentor */}
+          <section className="px-5 pb-3">
+            <p className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-[var(--wave-accent)]">
+              ∿ Наставник
+            </p>
+            <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card-body)] p-3">
+              <div className="mb-3 flex items-center gap-2.5">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                  style={{ background: 'linear-gradient(135deg, var(--wave-accent), oklch(0.55 0.22 290))' }}
+                >
+                  НС
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[var(--text-foam)]">Николай Степанов</p>
+                  <p className="text-[9px] font-semibold text-emerald-400">● Онлайн</p>
+                </div>
+              </div>
+              <Link
+                href="/chat"
+                onClick={onClose}
+                className="flex w-full items-center justify-center rounded-lg py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, var(--wave-accent), oklch(0.55 0.22 290))' }}
+              >
+                💬 Написать
+              </Link>
+            </div>
+          </section>
         </div>
 
         {/* Footer — profile */}

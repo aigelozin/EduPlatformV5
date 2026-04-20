@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/client'
 import { BookOpen, ShoppingBag, CreditCard, ArrowRight } from 'lucide-react'
 import { WaveCard } from '@/components/layout/WaveCard'
+import { MobileWaveCard } from '@/components/layout/MobileWaveCard'
 
 function WaveProgress({ value, accent }: { value: number; accent?: string }) {
   return (
@@ -98,32 +99,44 @@ export default async function StudentDashboardPage() {
 
   return (
     <div className="space-y-8 relative z-10">
-      <div className="mb-8 animate-fade-up relative z-10">
-        <h1 className="text-2xl font-bold text-[var(--text-foam)]">
-          Привет ∿
+      {/* Welcome */}
+      <div className="animate-fade-up">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--wave-accent)]">
+          ∿ Добрый день
+        </p>
+        <h1 className="text-2xl font-bold leading-tight text-[var(--text-foam)] sm:text-3xl">
+          Каждый урок —{' '}
+          <span className="font-light italic text-[var(--wave-accent)]">новая волна</span>
         </h1>
-        <p className="text-sm text-[var(--text-muted-foam)]">Продолжай обучение</p>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map(({ label, value, icon: Icon }) => (
-          <WaveCard key={label} className="p-5 relative z-10">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{label}</p>
-              <Icon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
+      {/* Wave stat strip — mobile style */}
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+        {[
+          { v: purchasesCount,       l: 'курсов',   c: 'var(--wave-accent)'                    },
+          { v: activeSubscriptions,  l: 'подписок', c: 'oklch(0.65 0.20 160)'                  },
+          { v: ordersCount,          l: 'заказов',  c: 'var(--wave-gold)'                      },
+        ].map(({ v, l, c }) => (
+          <WaveCard key={l} className="p-3 text-center sm:p-5">
+            <p
+              className="text-2xl font-bold leading-none sm:text-3xl"
+              style={{ color: c, textShadow: `0 0 20px ${c}44` }}
+            >
+              {v}
+            </p>
+            <p className="mt-1 text-[9px] text-[var(--text-muted-foam)] sm:text-xs">{l}</p>
           </WaveCard>
         ))}
       </div>
 
-      {/* Continue learning */}
+      {/* Continue diving */}
       <div>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Продолжить обучение</h2>
+        <h2 className="mb-4 text-base font-bold text-[var(--text-foam)] sm:text-lg">
+          Продолжить погружение
+        </h2>
 
         {recentPurchases.length === 0 ? (
-          <WaveCard className="p-8 text-center relative z-10 border-dashed">
+          <WaveCard className="p-8 text-center border-dashed">
             <BookOpen className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
             <p className="mb-4 text-muted-foreground">У вас пока нет купленных курсов</p>
             <Link
@@ -135,44 +148,62 @@ export default async function StudentDashboardPage() {
             </Link>
           </WaveCard>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recentPurchases.map((purchase) => {
-              const progress = progressMap.get(purchase.product_id) ?? 0
-              return (
-                <WaveCard key={purchase.id} className="overflow-hidden relative z-10">
-                  {purchase.product.thumbnail_url ? (
-                    <img
-                      src={purchase.product.thumbnail_url}
-                      alt={purchase.product.title_ru}
-                      className="h-36 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-36 w-full bg-muted flex items-center justify-center">
-                      <BookOpen className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <p className="font-medium text-foreground line-clamp-2">
-                      {purchase.product.title_ru}
-                    </p>
-                    <div className="mt-3">
-                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                        <span>Прогресс</span>
-                        <span>{progress}%</span>
+          <>
+            {/* Mobile: wave crest cards */}
+            <div className="flex flex-col gap-4 sm:hidden">
+              {recentPurchases.map((purchase) => {
+                const progress = progressMap.get(purchase.product_id) ?? 0
+                return (
+                  <MobileWaveCard
+                    key={purchase.id}
+                    href={`/catalog/${purchase.product_id}`}
+                    title={purchase.product.title_ru}
+                    progress={progress}
+                  />
+                )
+              })}
+            </div>
+
+            {/* Desktop: grid with full WaveCard */}
+            <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {recentPurchases.map((purchase) => {
+                const progress = progressMap.get(purchase.product_id) ?? 0
+                return (
+                  <WaveCard key={purchase.id} className="overflow-hidden">
+                    {purchase.product.thumbnail_url ? (
+                      <img
+                        src={purchase.product.thumbnail_url}
+                        alt={purchase.product.title_ru}
+                        className="h-36 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-36 w-full bg-muted flex items-center justify-center">
+                        <BookOpen className="h-8 w-8 text-muted-foreground" />
                       </div>
-                      <WaveProgress value={progress} />
+                    )}
+                    <div className="p-4">
+                      <p className="font-medium text-foreground line-clamp-2">
+                        {purchase.product.title_ru}
+                      </p>
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>Прогресс</span>
+                          <span>{progress}%</span>
+                        </div>
+                        <WaveProgress value={progress} />
+                      </div>
+                      <Link
+                        href={`/catalog/${purchase.product_id}`}
+                        className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+                      >
+                        Продолжить
+                      </Link>
                     </div>
-                    <Link
-                      href={`/catalog/${purchase.product_id}`}
-                      className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
-                    >
-                      Продолжить
-                    </Link>
-                  </div>
-                </WaveCard>
-              )
-            })}
-          </div>
+                  </WaveCard>
+                )
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
