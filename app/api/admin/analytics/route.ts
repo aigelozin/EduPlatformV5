@@ -120,7 +120,10 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<un
 
     const data = await getData()
     return NextResponse.json({ data, error: null })
-  } catch {
+  } catch (e: unknown) {
+    const msg = (e as Error)?.message ?? ''
+    if (msg === 'UNAUTHORIZED') return NextResponse.json({ data: null, error: 'Требуется авторизация' }, { status: 401 })
+    if (msg === 'FORBIDDEN') return NextResponse.json({ data: null, error: 'Нет доступа' }, { status: 403 })
     return NextResponse.json({ data: null, error: 'Ошибка сервера' }, { status: 500 })
   }
 }

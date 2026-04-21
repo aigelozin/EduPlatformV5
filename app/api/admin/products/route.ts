@@ -27,6 +27,41 @@ const CreateProductSchema = z.object({
   recording_source: z.enum(['vk', 'rutube', 'kinescope', 'youtube', 'yos']).optional().nullable(),
 })
 
+// GET /api/admin/products — список всех продуктов для модерации
+export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<unknown>>> {
+  try {
+    await requireRole('admin')
+    const { searchParams } = new URL(req.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
+    const perPage = 20
+    const status = searchParams.get('status') // pending | approved | rejected | null=all
+
+    const where = status ? { moderation_status: status as 'pending' | 'approved' | 'rejected' } : {}
+    const [total, products] = await Promise.all([
+      db.product.count({ where }),
+      db.product.findMany({
+        where,
+        select: {
+          id: true, slug: true, title_ru: true, type: true,
+          moderation_status: true, is_active: true, price: true,
+          created_at: true,
+          creator: { select: { id: true, name: true, email: true } },
+          category: { select: { id: true, name_ru: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      }),
+    ])
+    return NextResponse.json({ data: { products, total, page, perPage }, error: null })
+  } catch (e: unknown) {
+    const msg = (e as Error)?.message ?? ''
+    if (msg === 'UNAUTHORIZED') return NextResponse.json({ data: null, error: 'Требуется авторизация' }, { status: 401 })
+    if (msg === 'FORBIDDEN') return NextResponse.json({ data: null, error: 'Нет доступа' }, { status: 403 })
+    return NextResponse.json({ data: null, error: 'Ошибка сервера' }, { status: 500 })
+  }
+}
+
 // POST /api/admin/products — создать продукт (от имени любого преподавателя или от admin)
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<unknown>>> {
   try {

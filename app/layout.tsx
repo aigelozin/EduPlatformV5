@@ -22,6 +22,18 @@ export const metadata: Metadata = {
   },
   description: 'WisdomWave — образовательная платформа: йога, массаж, фитнес, творчество онлайн',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  openGraph: {
+    type: 'website',
+    siteName: 'WisdomWave',
+    title: 'WisdomWave — Образовательная платформа',
+    description: 'WisdomWave — образовательная платформа: йога, массаж, фитнес, творчество онлайн',
+    locale: 'ru_RU',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'WisdomWave — Образовательная платформа',
+    description: 'WisdomWave — образовательная платформа: йога, массаж, фитнес, творчество онлайн',
+  },
 }
 
 export default async function RootLayout({

@@ -2,7 +2,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { db } from '@/lib/db/client'
 import { WaveCard } from '@/components/layout/WaveCard'
-import { MobileWaveCard, WAVE_PALETTE } from '@/components/layout/MobileWaveCard'
+import { MobileWaveCard } from '@/components/layout/MobileWaveCard'
+import { WAVE_PALETTE } from '@/lib/wave-palette'
 
 export const metadata: Metadata = {
   title: 'Каталог курсов',

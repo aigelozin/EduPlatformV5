@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { WAVE_PALETTE } from './MobileWaveCard'
+import { WAVE_PALETTE } from '@/lib/wave-palette'
 
 interface Subcategory {
   id: string

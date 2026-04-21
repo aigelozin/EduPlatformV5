@@ -1,23 +1,25 @@
 version: '3.9'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: eduplatform_postgres
+  mysql:
+    image: mysql:8.0
+    container_name: eduplatform_mysql
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-eduplatform}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eduplatform_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-eduplatform}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-eduplatform}
+      MYSQL_USER: ${MYSQL_USER:-eduplatform}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-eduplatform_dev}
     ports:
-      - '5432:5432'
+      - '3306:3306'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-eduplatform}']
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD:-root_dev_password}']
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -34,29 +36,6 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: eduplatform_app
-    restart: unless-stopped
-    ports:
-      - '3000:3000'
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-eduplatform}:${POSTGRES_PASSWORD:-eduplatform_dev}@postgres:5432/${POSTGRES_DB:-eduplatform}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_dev_password}@redis:6379/0
-    env_file:
-      - .env.local
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
-
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
