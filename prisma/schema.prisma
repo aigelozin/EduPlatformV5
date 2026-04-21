@@ -120,22 +120,35 @@ model Profile {
   teacher_payouts       TeacherPayout[]
   product_messages      ProductMessage[]
   livestream_messages   LivestreamMessage[]
+  category_links        Category[]           @relation("CategoryTeacher")
 
   @@map("profiles")
 }
 
 model Category {
-  id          String    @id @default(cuid())
-  slug        String    @unique
-  name_ru     String
-  name_en     String?
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  name_ru        String
+  name_en        String?
   description_ru String?
-  sort_order  Int       @default(0)
-  is_active   Boolean   @default(true)
-  created_at  DateTime  @default(now())
+  brief_ru       String?
+  icon_emoji     String?
+  wave_color     String?
+  wave_accent    String?
+  parent_id      String?
+  sub_type       String?
+  teacher_id     String?
+  sort_order     Int       @default(0)
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now())
 
-  products    Product[]
+  products  Product[]
+  parent    Category?  @relation("CategoryChildren", fields: [parent_id], references: [id])
+  children  Category[] @relation("CategoryChildren")
+  teacher   Profile?   @relation("CategoryTeacher", fields: [teacher_id], references: [id])
 
+  @@index([parent_id])
+  @@index([teacher_id])
   @@map("categories")
 }
 

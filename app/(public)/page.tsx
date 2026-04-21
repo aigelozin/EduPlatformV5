@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ChatWidget } from '@/components/ai-chat/ChatWidget'
 import { WaveCard } from '@/components/layout/WaveCard'
+import { WaveCategoryCard } from '@/components/layout/WaveCategoryCard'
 import { db } from '@/lib/db/client'
 
 export const metadata: Metadata = {
@@ -41,8 +42,64 @@ export default async function HomePage() {
     product: { title_ru: string; category: { name_ru: string } | null } | null
   }
 
+  type CategoryWithSubs = {
+    id: string
+    slug: string
+    name_ru: string
+    brief_ru: string | null
+    wave_color: string | null
+    wave_accent: string | null
+    icon_emoji: string | null
+    children: {
+      id: string
+      name_ru: string
+      slug: string
+      sub_type: string | null
+      teacher: { name: string; avatar_url: string | null } | null
+    }[]
+  }
+
+  const FALLBACK_CATEGORIES = [
+    { slug: 'yoga', name: 'Йога', emoji: '🧘' },
+    { slug: 'massage', name: 'Массаж', emoji: '💆' },
+    { slug: 'fitness', name: 'Фитнес', emoji: '💪' },
+    { slug: 'creativity', name: 'Творчество', emoji: '🎨' },
+    { slug: 'business', name: 'Бизнес', emoji: '📈' },
+  ]
+
+  let categories: CategoryWithSubs[] = []
   let popularProducts: PopularProduct[] = []
   let featuredPlans: FeaturedPlan[] = []
+
+  try {
+    categories = (await db.category.findMany({
+      where: { is_active: true, parent_id: null },
+      select: {
+        id: true,
+        slug: true,
+        name_ru: true,
+        brief_ru: true,
+        wave_color: true,
+        wave_accent: true,
+        icon_emoji: true,
+        children: {
+          where: { is_active: true },
+          select: {
+            id: true,
+            name_ru: true,
+            slug: true,
+            sub_type: true,
+            teacher: { select: { name: true, avatar_url: true } },
+          },
+          orderBy: { sort_order: 'asc' },
+          take: 6,
+        },
+      },
+      orderBy: { sort_order: 'asc' },
+    })) as CategoryWithSubs[]
+  } catch {
+    // DB unavailable — use fallback
+  }
 
   try {
     ;[popularProducts, featuredPlans] = await Promise.all([
@@ -115,24 +172,35 @@ export default async function HomePage() {
       {/* 2. Категории */}
       <section className="relative z-10 container py-16">
         <h2 className="text-3xl font-bold mb-8 text-center">Категории</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {[
-            { slug: 'yoga', name: 'Йога', emoji: '🧘' },
-            { slug: 'massage', name: 'Массаж', emoji: '💆' },
-            { slug: 'fitness', name: 'Фитнес', emoji: '💪' },
-            { slug: 'creativity', name: 'Творчество', emoji: '🎨' },
-            { slug: 'business', name: 'Бизнес', emoji: '📈' },
-          ].map((cat) => (
-            <Link
-              key={cat.slug}
-              href={`/catalog?category=${cat.slug}`}
-              className="flex flex-col items-center gap-2 p-6 rounded-xl border hover:bg-accent hover:border-primary transition-all group"
-            >
-              <span className="text-4xl">{cat.emoji}</span>
-              <span className="font-medium text-sm">{cat.name}</span>
-            </Link>
-          ))}
-        </div>
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {categories.map((cat) => (
+              <WaveCategoryCard
+                key={cat.id}
+                href={`/catalog?category=${cat.slug}`}
+                name={cat.name_ru}
+                brief={cat.brief_ru}
+                waveColor={cat.wave_color}
+                waveAccent={cat.wave_accent}
+                iconEmoji={cat.icon_emoji}
+                subcategories={cat.children}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {FALLBACK_CATEGORIES.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/catalog?category=${cat.slug}`}
+                className="flex flex-col items-center gap-2 p-6 rounded-xl border hover:bg-accent hover:border-primary transition-all group"
+              >
+                <span className="text-4xl">{cat.emoji}</span>
+                <span className="font-medium text-sm">{cat.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 3. Популярные курсы */}

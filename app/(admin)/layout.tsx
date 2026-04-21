@@ -12,12 +12,14 @@ import {
   Settings,
   UserCog,
   LogOut,
+  Tags,
 } from 'lucide-react'
 
 const navLinks = [
   { href: '/admin', label: 'Обзор', icon: LayoutDashboard },
   { href: '/admin/teachers', label: 'Преподаватели', icon: Users },
   { href: '/admin/products', label: 'Продукты', icon: Package },
+  { href: '/admin/categories', label: 'Категории', icon: Tags },
   { href: '/admin/orders', label: 'Заказы', icon: ShoppingBag },
   { href: '/admin/users', label: 'Пользователи', icon: UserCog },
   { href: '/admin/analytics', label: 'Аналитика', icon: BarChart2 },
