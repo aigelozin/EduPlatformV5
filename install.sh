@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
 # ============================================================
 #  WisdomWave — Установка на Beget Shared Hosting
-#  Версия: 2.0 | 2026-04-22
-#  Использование: bash install.sh [--skip-seed] [--update] [--no-wizard]
+#  Версия: 3.0 | 2026-07-08
+#
+#  Первая установка:
+#    bash <(curl -fsSL https://raw.githubusercontent.com/aigelozin/EduPlatformV5/main/bootstrap.sh)
+#
+#  Или вручную после git clone:
+#    bash install.sh
+#
+#  Флаги:
+#    --skip-seed   Пропустить seed (повторная установка, данные уже есть)
+#    --update      git pull + пересборка (без seed)
+#    --reset       Полный сброс: npm ci, migrate, seed, build, restart
+#    --no-wizard   Пропустить wizard (используется .env как есть)
 # ============================================================
 
 set -euo pipefail
@@ -28,11 +39,13 @@ hint()    { echo -e "  ${YELLOW}↳ $1${NC}"; }
 # ─── Параметры запуска ────────────────────────────────────────
 SKIP_SEED=false
 UPDATE_MODE=false
+RESET_MODE=false
 NO_WIZARD=false
 for arg in "$@"; do
   case $arg in
     --skip-seed) SKIP_SEED=true ;;
-    --update)    UPDATE_MODE=true ;;
+    --update)    UPDATE_MODE=true; SKIP_SEED=true ;;
+    --reset)     RESET_MODE=true ;;
     --no-wizard) NO_WIZARD=true ;;
   esac
 done
@@ -48,8 +61,12 @@ LOG_FILE="$APP_DIR/logs/install.log"
 mkdir -p "$APP_DIR/logs"
 
 echo ""
+MODE_LABEL="Установка"
+[ "$UPDATE_MODE" = true ] && MODE_LABEL="Обновление"
+[ "$RESET_MODE"  = true ] && MODE_LABEL="Полный сброс"
+
 echo -e "${CYAN}╔═══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║     WisdomWave — Установка на сервер      ║${NC}"
+echo -e "${CYAN}║     WisdomWave — ${MODE_LABEL} на сервере     ║${NC}"
 echo -e "${CYAN}║     $(date '+%Y-%m-%d %H:%M:%S')                   ║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════╝${NC}"
 echo ""
@@ -488,9 +505,14 @@ step "4. Зависимости проекта"
 cd "$APP_DIR"
 
 if [ "$UPDATE_MODE" = true ]; then
-  info "Режим обновления — git pull..."
-  git pull origin main
+  info "Режим обновления — git fetch + reset..."
+  git fetch --all --prune
+  git reset --hard origin/main
+  ok "Код обновлён до origin/main"
 fi
+
+# Лимит памяти — важно для Beget Shared (ограниченная RAM)
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=512}"
 
 info "npm ci..."
 npm ci 2>&1 | tail -5
@@ -541,9 +563,16 @@ step "9. Запуск через PM2"
 mkdir -p "$APP_DIR/logs"
 
 if pm2 list | grep -q "eduplatform"; then
-  info "PM2: перезапускаю..."
-  pm2 reload ecosystem.config.js --update-env 2>&1 | tail -5
-  ok "PM2 процесс перезапущен"
+  if [ "$RESET_MODE" = true ]; then
+    info "PM2: полная остановка и перезапуск (--reset)..."
+    pm2 delete ecosystem.config.js 2>/dev/null || true
+    pm2 start ecosystem.config.js 2>&1 | tail -5
+    ok "PM2 процесс перезапущен с нуля"
+  else
+    info "PM2: горячая перезагрузка..."
+    pm2 reload ecosystem.config.js --update-env 2>&1 | tail -5
+    ok "PM2 процесс перезагружен"
+  fi
 else
   info "PM2: запускаю впервые..."
   pm2 start ecosystem.config.js 2>&1 | tail -5

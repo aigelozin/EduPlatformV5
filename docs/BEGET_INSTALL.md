@@ -1,4 +1,4 @@
-# WisdomWave — Установка на Beget через install.sh
+# WisdomWave — Установка на Beget
 
 **Для:** Beget Shared Hosting (SSH-доступ)
 **Домен:** anandayoga.ru
@@ -7,49 +7,74 @@
 
 ---
 
-## Содержание
+## Одна команда — полная установка
 
-1. [Что делает скрипт](#1-что-делает-скрипт)
-2. [Шаг 1 — Подготовка в панели Beget](#2-шаг-1--подготовка-в-панели-beget)
-3. [Шаг 2 — Файлы для копирования на сервер](#3-шаг-2--файлы-для-копирования-на-сервер)
-4. [Шаг 3 — Подготовьте API-ключи заранее](#4-шаг-3--подготовьте-api-ключи-заранее)
-5. [Шаг 4 — Подключение по SSH](#5-шаг-4--подключение-по-ssh)
-6. [Шаг 5 — Запуск скрипта и wizard](#6-шаг-5--запуск-скрипта-и-wizard)
-7. [Шаг 6 — Настройка Nginx в панели Beget](#7-шаг-6--настройка-nginx-в-панели-beget)
-8. [Что делать при ошибках](#8-что-делать-при-ошибках)
-9. [Обновление сайта](#9-обновление-сайта)
-10. [Структура папок на сервере](#10-структура-папок-на-сервере)
+После подключения по SSH выполните:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/aigelozin/EduPlatformV5/main/bootstrap.sh)
+```
+
+Скрипт сам клонирует репозиторий, задаст вопросы (домен, БД, ключи) и установит сайт.
+
+**Обновление** (при каждом `git push` — автоматически через GitHub Actions, или вручную):
+```bash
+cd ~/anandayoga.ru && bash install.sh --update
+```
 
 ---
 
-## 1. Что делает скрипт
+## Содержание
 
-`install.sh` — полностью автоматизированная установка с интерактивным wizard'ом.
-**.env создавать вручную не нужно** — скрипт сам спросит все данные.
+1. [Что делают скрипты](#1-что-делают-скрипты)
+2. [Шаг 1 — Подготовка в панели Beget](#2-шаг-1--подготовка-в-панели-beget)
+3. [Шаг 2 — Подготовьте API-ключи заранее](#3-шаг-2--подготовьте-api-ключи-заранее)
+4. [Шаг 3 — Подключение по SSH](#4-шаг-3--подключение-по-ssh)
+5. [Шаг 4 — Запуск bootstrap.sh](#5-шаг-4--запуск-bootstrapsh)
+6. [Шаг 5 — Настройка Nginx в панели Beget](#6-шаг-5--настройка-nginx-в-панели-beget)
+7. [Что делать при ошибках](#7-что-делать-при-ошибках)
+8. [Обновление сайта](#8-обновление-сайта)
+9. [Структура папок на сервере](#9-структура-папок-на-сервере)
+
+---
+
+## 1. Что делают скрипты
+
+Два скрипта: `bootstrap.sh` запускается один раз при первичной установке, `install.sh` — при каждом обновлении.
+
+### bootstrap.sh — первичная установка
 
 | Этап | Действие |
 |------|----------|
-| **Wizard** | Задаёт вопросы: домен, БД, Redis, платежи, email, AI — и создаёт `.env` |
+| 0 | Клонирует репозиторий с GitHub в указанную директорию |
+| → | Передаёт управление в `install.sh` |
+
+### install.sh — установка и обновление
+
+| Этап | Действие |
+|------|----------|
+| **Wizard** | Спрашивает: домен, БД, Redis, платежи, email, AI — создаёт `.env` |
 | 1 | Проверяет `.env` — все ли обязательные переменные заполнены |
 | 2 | Устанавливает Node.js 20 через nvm (если нет или старая версия) |
 | 3 | Устанавливает PM2 без sudo (в `~/.npm-global`) |
-| 4 | Устанавливает npm-зависимости (`npm ci`) |
-| 5 | Генерирует Prisma-клиент для MySQL |
-| 6 | Применяет миграции БД (создаёт таблицы) |
-| 7 | Запускает seed — начальные данные, тестовые аккаунты |
-| 8 | Собирает production-версию Next.js |
-| 9 | Запускает/перезапускает через PM2 (cluster, 2 воркера) |
-| 10 | Настраивает автозапуск через `crontab @reboot` |
-| 11 | Проверяет что сайт отвечает |
+| 4 | `git fetch --all && git reset --hard origin/main` (при `--update`) |
+| 5 | `npm ci` — устанавливает зависимости (лимит RAM 512MB для Beget) |
+| 6 | `npx prisma generate` — генерирует Prisma-клиент для MySQL |
+| 7 | `npx prisma migrate deploy` — применяет все миграции |
+| 8 | `npx prisma db seed` — начальные данные (пропускается при `--skip-seed`) |
+| 9 | `npm run build` — собирает production Next.js (1–3 минуты) |
+| 10 | PM2 start/reload — запуск/горячая перезагрузка (2 воркера) |
+| 11 | `crontab @reboot` — автозапуск после перезагрузки сервера |
+| 12 | Проверяет что сайт отвечает на `localhost:3000` |
 
-### Флаги запуска
+### Флаги install.sh
 
 | Команда | Когда использовать |
 |---------|-------------------|
 | `bash install.sh` | Первая установка (запустит wizard) |
-| `bash install.sh --skip-seed` | Повторная установка — БД уже заполнена |
-| `bash install.sh --update` | Обновление кода (git pull) + переустановка |
-| `bash install.sh --update --skip-seed` | Плановое обновление без сброса данных |
+| `bash install.sh --update` | Обновление: git pull + build + reload (seed пропускается) |
+| `bash install.sh --reset` | Полный сброс PM2 (если процесс завис) |
+| `bash install.sh --skip-seed` | Пропустить seed (данные уже есть) |
 | `bash install.sh --no-wizard` | Пропустить wizard (`.env` уже готов) |
 
 ---
@@ -87,71 +112,7 @@
 
 ---
 
-## 3. Шаг 2 — Файлы для копирования на сервер
-
-### Что нужно скопировать
-
-Скопируйте **весь проект** на сервер в папку `/home/zinder_anandayoga/anandayoga.ru/`.
-
-**Метод 1 — через git (рекомендуется):**
-Выполнить на сервере после SSH-подключения:
-```bash
-git clone https://github.com/aigelozin/EduPlatformV5.git /home/zinder_anandayoga/anandayoga.ru
-```
-
-**Метод 2 — rsync с локальной машины:**
-```bash
-rsync -avz --exclude='node_modules' --exclude='.next' --exclude='logs' --exclude='.env*' \
-  /home/ai-openyoga/EduplatformРФ/ \
-  zinder_anandayoga@anandayoga.ru:/home/zinder_anandayoga/anandayoga.ru/
-```
-
-### Обязательные файлы и папки
-
-После копирования на сервере должна быть следующая структура:
-
-```
-/home/zinder_anandayoga/anandayoga.ru/
-│
-├── install.sh                  ← главный скрипт установки
-├── .env.example                ← шаблон (wizard читает его как основу)
-│
-├── package.json
-├── package-lock.json
-├── ecosystem.config.js         ← настройки PM2
-├── next.config.js
-├── tsconfig.json
-├── tailwind.config.ts
-├── middleware.ts
-│
-├── prisma/
-│   ├── schema.prisma           ← схема БД (23 таблицы)
-│   ├── seed.ts                 ← начальные данные
-│   └── migrations/
-│       ├── 20260417000000_mysql_init/migration.sql
-│       └── 20260421000000_category_subcategories/migration.sql
-│
-├── app/                        ← страницы (Next.js App Router)
-├── components/                 ← React-компоненты
-├── lib/                        ← утилиты и библиотеки
-├── types/                      ← TypeScript типы
-├── public/                     ← статические файлы
-└── messages/ru.json            ← переводы интерфейса
-```
-
-### Что НЕ нужно копировать
-
-| Папка/файл | Причина |
-|-----------|---------|
-| `node_modules/` | Создаётся скриптом (`npm ci`) |
-| `.next/` | Создаётся скриптом (`npm run build`) |
-| `.env` / `.env.local` | Wizard создаёт `.env` сам на сервере |
-| `logs/` | Создаётся скриптом автоматически |
-| `docker-compose.yml` | Docker не используется на Beget Shared |
-
----
-
-## 4. Шаг 3 — Подготовьте API-ключи заранее
+## 3. Шаг 2 — Подготовьте API-ключи заранее
 
 `.env` создаётся автоматически во время работы wizard'а.
 **Вам нужно только иметь под рукой** следующие данные — wizard спросит их по очереди.
@@ -194,7 +155,7 @@ rsync -avz --exclude='node_modules' --exclude='.next' --exclude='logs' --exclude
 
 ---
 
-## 5. Шаг 4 — Подключение по SSH
+## 4. Шаг 3 — Подключение по SSH
 
 ### С Linux / macOS:
 ```bash
@@ -212,21 +173,21 @@ ssh zinder_anandayoga@anandayoga.ru
 
 ---
 
-## 6. Шаг 5 — Запуск скрипта и wizard
+## 5. Шаг 4 — Запуск bootstrap.sh
+
+После подключения по SSH выполните одну команду:
 
 ```bash
-# Перейти в папку сайта
-cd /home/zinder_anandayoga/anandayoga.ru
-
-# Если ещё не скопировали — клонировать с GitHub
-# git clone https://github.com/aigelozin/EduPlatformV5.git .
-
-# Сделать скрипт исполняемым
-chmod +x install.sh
-
-# Запустить — wizard запустится автоматически
-bash install.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/aigelozin/EduPlatformV5/main/bootstrap.sh)
 ```
+
+Скрипт спросит директорию установки (по умолчанию `~/anandayoga.ru`), клонирует репозиторий и запустит wizard.
+
+> **Если curl недоступен** — вручную:
+> ```bash
+> git clone https://github.com/aigelozin/EduPlatformV5.git ~/anandayoga.ru
+> bash ~/anandayoga.ru/install.sh
+> ```
 
 ### Как выглядит wizard (полный пример диалога)
 
@@ -398,7 +359,7 @@ nano /home/zinder_anandayoga/anandayoga.ru/.env
 
 ---
 
-## 7. Шаг 6 — Настройка Nginx в панели Beget
+## 6. Шаг 5 — Настройка Nginx в панели Beget
 
 На Beget Shared Nginx управляется через панель. Настройка занимает 2 минуты.
 
@@ -428,7 +389,7 @@ RewriteRule ^(.*)$ http://localhost:3000/$1 [P,L]
 
 ---
 
-## 8. Что делать при ошибках
+## 7. Что делать при ошибках
 
 ### ❌ Wizard зависает или введён неверный пароль БД
 
@@ -485,23 +446,31 @@ pm2 restart all     # перезапустить
 
 ---
 
-## 9. Обновление сайта
+## 8. Обновление сайта
 
-### Автоматически (GitHub Actions при push в main)
+### Автоматически — GitHub Actions (рекомендуется)
 
-При каждом `git push origin main` GitHub Actions автоматически деплоит на сервер.
-Нужно добавить Secrets в репозиторий (см. `docs/DEPLOY.md` раздел 11).
+При каждом `git push origin main` GitHub Actions автоматически запускает `install.sh --update` на сервере.
+
+Добавьте Secrets в репозиторий (Settings → Secrets and variables → Actions):
+
+| Secret | Значение |
+|--------|----------|
+| `BEGET_SSH_HOST` | `anandayoga.ru` |
+| `BEGET_SSH_USER` | `zinder_anandayoga` |
+| `BEGET_SSH_PRIVATE_KEY` | Содержимое `~/.ssh/id_rsa` (приватный ключ) |
+| `BEGET_DEPLOY_PATH` | `/home/zinder_anandayoga/anandayoga.ru` |
 
 ### Вручную
 
 ```bash
-cd /home/zinder_anandayoga/anandayoga.ru
-bash install.sh --update --skip-seed
+cd ~/anandayoga.ru
+bash install.sh --update
 ```
 
 ---
 
-## 10. Структура папок на сервере
+## 9. Структура папок на сервере
 
 После успешной установки:
 
