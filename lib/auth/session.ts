@@ -10,7 +10,7 @@ const DEV_ADMIN: SessionUser = {
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  if (process.env.DEV_BYPASS_AUTH === 'true') return DEV_ADMIN
+  if (process.env.NODE_ENV !== 'production' && process.env.DEV_BYPASS_AUTH === 'true') return DEV_ADMIN
   const session = await auth()
   if (!session?.user?.id) return null
   return session.user as SessionUser

@@ -210,7 +210,7 @@ model ProductMessage {
   created_at DateTime @default(now())
 
   product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  user       Profile  @relation(fields: [user_id], references: [id])
+  user       Profile  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([product_id, created_at])
   @@map("product_messages")
@@ -303,7 +303,7 @@ model LivestreamMessage {
   created_at    DateTime   @default(now())
 
   livestream    Livestream @relation(fields: [livestream_id], references: [id], onDelete: Cascade)
-  user          Profile    @relation(fields: [user_id], references: [id])
+  user          Profile    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([livestream_id, created_at])
   @@map("livestream_messages")
@@ -334,8 +334,8 @@ model UserSubscription {
   is_active       Boolean   @default(true)
   created_at      DateTime  @default(now())
 
-  user            Profile      @relation(fields: [user_id], references: [id])
-  subscription    Subscription @relation(fields: [subscription_id], references: [id])
+  user            Profile      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  subscription    Subscription @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, expires_at])
   @@map("user_subscriptions")

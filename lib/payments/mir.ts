@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 export interface MirPaymentResult {
   payment_id: string
@@ -75,6 +75,8 @@ export function verifyMirWebhook(body: string, signature: string): boolean {
   }
 
   const expected = createHmac('sha256', webhookSecret).update(body).digest('hex')
+  const expectedBuf = Buffer.from(expected)
+  const signatureBuf = Buffer.from(signature)
 
-  return expected === signature
+  return expectedBuf.length === signatureBuf.length && timingSafeEqual(expectedBuf, signatureBuf)
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { subscribe } from '@/lib/sse/livestream-broadcaster'
+import { requireAuth } from '@/lib/auth/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,6 +8,11 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  try {
+    await requireAuth()
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({

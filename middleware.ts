@@ -13,8 +13,8 @@ export default auth((req) => {
   const { pathname } = req.nextUrl
   const session = req.auth
 
-  // DEV BYPASS: пропускаем auth-проверки если нет базы данных
-  if (process.env.DEV_BYPASS_AUTH === 'true') {
+  // DEV BYPASS: только в dev/test окружении
+  if (process.env.NODE_ENV !== 'production' && process.env.DEV_BYPASS_AUTH === 'true') {
     return NextResponse.next()
   }
 

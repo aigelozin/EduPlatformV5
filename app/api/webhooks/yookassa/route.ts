@@ -12,10 +12,11 @@ const DIGITAL_PRODUCT_TYPES = [
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = await req.text()
-  const signature = req.headers.get('X-Signature') ?? ''
+  const signature = req.headers.get('X-Request-Checksum') ?? ''
 
   const isValid = verifyYooKassaWebhook(body, signature)
   if (!isValid) {
+    console.error('[webhook/yookassa] invalid signature')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         },
       })
 
-      if (payment) {
+      if (payment && payment.status !== 'succeeded') {
         await db.$transaction(async (tx) => {
           await tx.payment.update({
             where: { id: payment.id },

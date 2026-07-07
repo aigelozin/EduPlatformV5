@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 export interface CryptoCloudInvoiceResult {
   invoice_id: string
@@ -69,6 +69,8 @@ export function verifyCryptoCloudWebhook(body: string, signature: string): boole
   }
 
   const expected = createHmac('sha256', webhookSecret).update(body).digest('hex')
+  const expectedBuf = Buffer.from(expected)
+  const signatureBuf = Buffer.from(signature)
 
-  return expected === signature
+  return expectedBuf.length === signatureBuf.length && timingSafeEqual(expectedBuf, signatureBuf)
 }

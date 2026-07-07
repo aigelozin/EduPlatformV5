@@ -16,6 +16,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const isValid = verifyCryptoCloudWebhook(body, signature)
   if (!isValid) {
+    console.error('[webhook/cryptocloud] invalid signature')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         },
       })
 
-      if (payment) {
+      if (payment && payment.status !== 'succeeded') {
         await db.$transaction(async (tx) => {
           await tx.payment.update({
             where: { id: payment.id },
